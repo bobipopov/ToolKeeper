@@ -157,8 +157,8 @@ export default function Movements() {
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <Card className="p-2 sm:p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
           {/* Date From */}
           <div className="space-y-2">
             <Label className="text-xs">От дата</Label>
@@ -215,7 +215,7 @@ export default function Movements() {
           </div>
 
           {/* Search */}
-          <div className="space-y-2">
+          <div className="space-y-2 col-span-2 lg:col-span-1">
             <Label className="text-xs">Търсене</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -230,7 +230,7 @@ export default function Movements() {
         </div>
 
         {/* Quick date buttons */}
-        <div className="flex gap-2 mt-4 pt-4 border-t">
+        <div className="flex flex-wrap gap-2 mt-2 sm:mt-4 pt-2 sm:pt-4 border-t">
           <button
             onClick={() => {
               const today = new Date();
@@ -295,6 +295,7 @@ export default function Movements() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -379,6 +380,7 @@ export default function Movements() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

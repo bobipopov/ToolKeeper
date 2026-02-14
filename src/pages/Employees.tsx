@@ -161,7 +161,7 @@ export default function Employees() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Служители</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -171,6 +171,7 @@ export default function Employees() {
           </p>
         </div>
 
+        <div className="flex justify-center">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -197,6 +198,7 @@ export default function Employees() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card className="p-3">

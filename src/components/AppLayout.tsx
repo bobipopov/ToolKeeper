@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
@@ -8,7 +8,6 @@ import {
   Users,
   BarChart3,
   LogOut,
-  Wrench,
   Shield,
   Menu,
   History,
@@ -16,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import logoImage from "@/assets/MLogo.png";
 
 const navItems = [
   { to: "/", label: "Табло", icon: LayoutDashboard, roles: ["admin", "user"] },
@@ -52,15 +52,9 @@ function SidebarContent({
   return (
     <>
       <div className="p-5 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Wrench className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-sidebar-foreground">Склад</h2>
-            <p className="text-xs text-muted-foreground">Инструменти</p>
-          </div>
-        </div>
+        <Link to="/" className="flex items-center justify-center">
+          <img src={logoImage} alt="Склад" className="h-12 w-auto" />
+        </Link>
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
@@ -145,10 +139,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
-          <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-primary" />
-            <span className="text-sm font-bold">Склад</span>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img src={logoImage} alt="Склад" className="h-8 w-auto" />
+          </Link>
         </header>
 
         <main className="flex-1 overflow-auto custom-scrollbar">

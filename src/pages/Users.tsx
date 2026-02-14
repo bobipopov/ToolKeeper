@@ -103,11 +103,12 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Потребители</h1>
           <p className="text-sm text-muted-foreground mt-1">{users.length} общо</p>
         </div>
+        <div className="flex justify-center">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -172,6 +173,7 @@ export default function UsersPage() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

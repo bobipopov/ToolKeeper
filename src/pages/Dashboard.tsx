@@ -217,7 +217,7 @@ export default function Dashboard() {
       </div>
 
       {/* Movement type toggle */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-center">
         <Button
           variant={movementType === "issue" ? "default" : "secondary"}
           onClick={() => { setMovementType("issue"); setCart([]); }}

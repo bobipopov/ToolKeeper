@@ -3,8 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wrench, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import logoImage from "@/assets/MLogo.png";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -31,8 +32,8 @@ export default function Login() {
       <div className="w-full max-w-md animate-fade-in">
         <div className="glass-card p-8 space-y-6">
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 glow-amber mb-2">
-              <Wrench className="w-7 h-7 text-primary" />
+            <div className="inline-flex items-center justify-center mb-4">
+              <img src={logoImage} alt="Складова система" className="h-16 w-auto" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Складова система</h1>
             <p className="text-sm text-muted-foreground">Управление на машинни инструменти</p>
