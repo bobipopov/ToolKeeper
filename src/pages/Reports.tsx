@@ -670,7 +670,7 @@ export default function Reports() {
                       <TableRow key={item.id}>
                         <TableCell className="font-mono font-medium">{item.inventory_code}</TableCell>
                         <TableCell>{item.categories?.name}</TableCell>
-                        <TableCell className="text-right">{Number(item.price).toFixed(2)} €</TableCell>
+                        <TableCell>{Number(item.price).toFixed(2)} €</TableCell>
                         <TableCell className="text-center">
                           {repairsByItem[item.id]?.length ? (
                             <Tooltip>
@@ -803,17 +803,17 @@ export default function Reports() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleStockSort("code")}>
+                    <TableHead className="w-16 cursor-pointer select-none" onClick={() => toggleStockSort("code")}>
                       <span className="inline-flex items-center gap-1">Код <StockSortIcon col="code" /></span>
                     </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleStockSort("category")}>
+                    <TableHead className="w-72 cursor-pointer select-none" onClick={() => toggleStockSort("category")}>
                       <span className="inline-flex items-center gap-1">Категория <StockSortIcon col="category" /></span>
                     </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleStockSort("ownership")}>
+                    <TableHead className="w-32 cursor-pointer select-none" onClick={() => toggleStockSort("ownership")}>
                       <span className="inline-flex items-center gap-1">Собственост <StockSortIcon col="ownership" /></span>
                     </TableHead>
-                    <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleStockSort("price")}>
-                      <span className="inline-flex items-center gap-1 justify-end">Цена <StockSortIcon col="price" /></span>
+                    <TableHead className="w-28 cursor-pointer select-none" onClick={() => toggleStockSort("price")}>
+                      <span className="inline-flex items-center gap-1">Цена <StockSortIcon col="price" /></span>
                     </TableHead>
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleStockSort("notes")}>
                       <span className="inline-flex items-center gap-1">Забележка <StockSortIcon col="notes" /></span>
@@ -830,14 +830,14 @@ export default function Reports() {
                   ))}
                   {sortedStockItems.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-mono font-medium">{item.inventory_code}</TableCell>
-                      <TableCell>{item.categories?.name}</TableCell>
-                      <TableCell>
+                      <TableCell className="w-16 font-mono font-medium">{item.inventory_code}</TableCell>
+                      <TableCell className="w-72">{item.categories?.name}</TableCell>
+                      <TableCell className="w-32">
                         <Badge variant="outline" className={item.ownership === "milkos" ? "bg-blue-500/10 text-blue-700 border-blue-500/30" : "bg-orange-500/10 text-orange-700 border-orange-500/30"}>
                           {item.ownership === "milkos" ? "Милкос" : "Наем"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{Number(item.price).toFixed(2)} €</TableCell>
+                      <TableCell className="w-28">{Number(item.price).toFixed(2)} €</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{item.notes || "—"}</TableCell>
                     </TableRow>
                   ))}
