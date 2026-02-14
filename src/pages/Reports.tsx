@@ -28,7 +28,7 @@ export default function Reports() {
   const [selectedEmployee, setSelectedEmployee] = useState("");
 
   // Sort state for stock items
-  type StockSortKey = "code" | "category" | "price" | "notes";
+  type StockSortKey = "code" | "category" | "ownership" | "price" | "notes";
   const [stockSortKey, setStockSortKey] = useState<StockSortKey | null>(null);
   const [stockSortDir, setStockSortDir] = useState<"asc" | "desc">("asc");
 
@@ -264,6 +264,7 @@ export default function Reports() {
     switch (stockSortKey) {
       case "code": return dir * a.inventory_code.localeCompare(b.inventory_code, undefined, { numeric: true });
       case "category": return dir * (a.categories?.name ?? "").localeCompare(b.categories?.name ?? "");
+      case "ownership": return dir * (a.ownership ?? "").localeCompare(b.ownership ?? "");
       case "price": return dir * (Number(a.price) - Number(b.price));
       case "notes": return dir * (a.notes ?? "").localeCompare(b.notes ?? "");
       default: return 0;
@@ -375,6 +376,7 @@ export default function Reports() {
     const data = sortedStockItems.map((item) => ({
       "Код": item.inventory_code,
       "Категория": item.categories?.name ?? "",
+      "Собственост": item.ownership === "milkos" ? "Милкос" : "Наем",
       "Цена (€)": Number(item.price).toFixed(2),
       "Забележка": item.notes || "",
     }));
@@ -807,6 +809,9 @@ export default function Reports() {
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleStockSort("category")}>
                       <span className="inline-flex items-center gap-1">Категория <StockSortIcon col="category" /></span>
                     </TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleStockSort("ownership")}>
+                      <span className="inline-flex items-center gap-1">Собственост <StockSortIcon col="ownership" /></span>
+                    </TableHead>
                     <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleStockSort("price")}>
                       <span className="inline-flex items-center gap-1 justify-end">Цена <StockSortIcon col="price" /></span>
                     </TableHead>
@@ -818,7 +823,7 @@ export default function Reports() {
                 <TableBody>
                   {stockLoading && Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 4 }).map((_, j) => (
+                      {Array.from({ length: 5 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                       ))}
                     </TableRow>
@@ -827,13 +832,18 @@ export default function Reports() {
                     <TableRow key={item.id}>
                       <TableCell className="font-mono font-medium">{item.inventory_code}</TableCell>
                       <TableCell>{item.categories?.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={item.ownership === "milkos" ? "bg-blue-500/10 text-blue-700 border-blue-500/30" : "bg-orange-500/10 text-orange-700 border-orange-500/30"}>
+                          {item.ownership === "milkos" ? "Милкос" : "Наем"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">{Number(item.price).toFixed(2)} €</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{item.notes || "—"}</TableCell>
                     </TableRow>
                   ))}
                   {!stockLoading && sortedStockItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Складът е празен</TableCell>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Складът е празен</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
