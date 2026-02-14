@@ -41,6 +41,12 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         day_hidden: "invisible",
         ...classNames,
       }}
+      modifiers={{
+        weekend: (date) => date.getDay() === 0 || date.getDay() === 6,
+      }}
+      modifiersClassNames={{
+        weekend: "text-muted-foreground/70 bg-muted/30",
+      }}
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,

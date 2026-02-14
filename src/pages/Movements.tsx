@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ArrowLeft, ArrowRight, Calendar, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay, parse } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import * as XLSX from "xlsx";
 import excelIcon from "@/assets/excell.svg";
@@ -161,22 +162,22 @@ export default function Movements() {
           {/* Date From */}
           <div className="space-y-2">
             <Label className="text-xs">От дата</Label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="text-sm"
+            <DatePicker
+              date={dateFrom ? parse(dateFrom, "yyyy-MM-dd", new Date()) : undefined}
+              onDateChange={(date) => setDateFrom(date ? format(date, "yyyy-MM-dd") : "")}
+              placeholder="Изберете дата"
+              className="w-full text-sm h-9"
             />
           </div>
 
           {/* Date To */}
           <div className="space-y-2">
             <Label className="text-xs">До дата</Label>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="text-sm"
+            <DatePicker
+              date={dateTo ? parse(dateTo, "yyyy-MM-dd", new Date()) : undefined}
+              onDateChange={(date) => setDateTo(date ? format(date, "yyyy-MM-dd") : "")}
+              placeholder="Изберете дата"
+              className="w-full text-sm h-9"
             />
           </div>
 
