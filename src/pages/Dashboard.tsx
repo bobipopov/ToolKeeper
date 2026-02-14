@@ -86,24 +86,30 @@ export default function Dashboard() {
     queryKey: ["employee_assigned_items", returnEmployee],
     queryFn: async () => {
       if (!returnEmployee) return [];
-      const { data: assignedItems, error: assignedError } = await supabase
-        .from("inventory_items")
-        .select("id")
-        .eq("status", "assigned");
-      if (assignedError) throw assignedError;
-      if (!assignedItems?.length) return [];
 
-      const assignedIds = assignedItems.map((a) => a.id);
-
-      // Use VIEW for automatic deduplication
+      // Get all issue movements for this employee
       const { data: movements, error } = await supabase
-        .from("latest_issue_movements")
-        .select("*, inventory_items(id, inventory_code, categories(name))")
-        .in("item_id", assignedIds)
-        .eq("employee_id", returnEmployee);
+        .from("movements")
+        .select("id, item_id, employee_id, movement_type, condition, created_at, inventory_items!inner(id, inventory_code, status, categories(name))")
+        .eq("employee_id", returnEmployee)
+        .eq("movement_type", "issue")
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
 
-      return movements as MovementWithRelations[];
+      // Client-side filtering and deduplication:
+      // 1. Filter only items that are currently assigned
+      // 2. Keep only latest movement per item
+      const seen = new Set<string>();
+      const deduplicated = (movements ?? [])
+        .filter((m) => m.inventory_items?.status === "assigned")
+        .filter((m) => {
+          if (seen.has(m.item_id)) return false;
+          seen.add(m.item_id);
+          return true;
+        });
+
+      return deduplicated as MovementWithRelations[];
     },
     enabled: movementType === "return" && !!returnEmployee,
   });
