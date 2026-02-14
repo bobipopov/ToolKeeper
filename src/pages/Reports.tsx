@@ -449,6 +449,29 @@ export default function Reports() {
                           </ul>
                         </div>
                         <div>
+                          <p className="font-medium mb-1">Цветни индикатори за коефициент повреди:</p>
+                          <ul className="space-y-1 ml-1 text-muted-foreground">
+                            <li className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-700 border border-green-500/30">
+                                0-20%
+                              </span>
+                              <span className="text-xs">Добър служител - малко или никакви повреди</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-500/10 text-yellow-700 border border-yellow-500/30">
+                                20-50%
+                              </span>
+                              <span className="text-xs">Внимание - умерени повреди, нужно наблюдение</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-500/10 text-red-600 border border-red-500/30">
+                                над 50%
+                              </span>
+                              <span className="text-xs">Проблемен служител - чести повреди, нужно обучение</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div>
                           <p className="font-medium mb-1">Ползи за мениджъра:</p>
                           <ul className="list-disc list-inside space-y-0.5 ml-1 text-muted-foreground">
                             <li>Контрол върху отговорността на служителите</li>
@@ -551,15 +574,19 @@ export default function Reports() {
                             <Badge
                               variant="outline"
                               className={
-                                dmgPct > 50 ? "bg-destructive/10 text-destructive border-destructive/20"
-                                : dmgPct > 20 ? "bg-primary/10 text-primary border-primary/20"
-                                : ""
+                                dmgPct > 50
+                                  ? "bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400" // 🔴 Проблемен
+                                  : dmgPct > 20
+                                  ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/30 dark:text-yellow-400" // 🟡 Внимание
+                                  : "bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-400" // 🟢 Добър
                               }
                             >
                               {dmgPct.toFixed(0)}%
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-400">
+                              0%
+                            </Badge>
                           )}
                         </TableCell>
                       </TableRow>
