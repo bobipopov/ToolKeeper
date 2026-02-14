@@ -642,8 +642,8 @@ export default function Reports() {
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("category")}>
                       <span className="inline-flex items-center gap-1">Категория <RepairSortIcon col="category" /></span>
                     </TableHead>
-                    <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("price")}>
-                      <span className="inline-flex items-center gap-1 justify-end">Цена артикул <RepairSortIcon col="price" /></span>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("price")}>
+                      <span className="inline-flex items-center gap-1">Цена артикул <RepairSortIcon col="price" /></span>
                     </TableHead>
                     <TableHead className="text-center cursor-pointer select-none" onClick={() => toggleRepairSort("repairCount")}>
                       <span className="inline-flex items-center gap-1 justify-center">Бр. ремонти <RepairSortIcon col="repairCount" /></span>
