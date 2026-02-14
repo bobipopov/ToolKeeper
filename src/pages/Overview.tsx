@@ -283,7 +283,7 @@ export default function Overview() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              Алерти
+              Внимание: Артикули с много ремонти
             </CardTitle>
           </CardHeader>
           <CardContent>
