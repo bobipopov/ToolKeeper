@@ -126,9 +126,9 @@ export function CategoryManagerDialog({ categories }: CategoryManagerDialogProps
     <>
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { resetAddForm(); cancelEdit(); } }}>
         <DialogTrigger asChild>
-          <Button className="gap-2">
+          <Button className="gap-2 flex-1 sm:flex-initial">
             <FolderCog className="w-4 h-4" />
-            Категории
+            <span className="hidden sm:inline">Категории</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto custom-scrollbar">

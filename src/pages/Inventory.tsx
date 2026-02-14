@@ -319,7 +319,7 @@ export default function Inventory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Инвентар</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -327,13 +327,13 @@ export default function Inventory() {
           </p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
           <CategoryManagerDialog categories={categories} />
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 flex-1 sm:flex-initial">
                 <Plus className="w-4 h-4" />
-                Заприходи
+                <span className="hidden sm:inline">Заприходи</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -404,10 +404,10 @@ export default function Inventory() {
       {/* Filter */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex gap-3 items-center justify-between">
-            <div className="flex gap-3 items-center">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center flex-1">
               <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setPage(0); }}>
-                <SelectTrigger className="w-64" aria-label="Филтър по категория">
+                <SelectTrigger className="w-full sm:w-64" aria-label="Филтър по категория">
                   <SelectValue placeholder="Филтър по категория" />
                 </SelectTrigger>
                 <SelectContent>
@@ -417,13 +417,13 @@ export default function Inventory() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
                   placeholder="Търсене по код..."
-                  className="pl-9 w-56"
+                  className="pl-9 w-full sm:w-56"
                   aria-label="Търсене по инвентарен код"
                 />
               </div>
@@ -432,7 +432,7 @@ export default function Inventory() {
               <TooltipTrigger asChild>
                 <button
                   onClick={exportToExcel}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted self-end sm:self-auto"
                   aria-label="Експорт в Excel"
                 >
                   <img src={excelIcon} alt="Excel" className="w-5 h-5" />
@@ -447,6 +447,7 @@ export default function Inventory() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -594,6 +595,7 @@ export default function Inventory() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
