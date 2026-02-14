@@ -8,7 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Info, Package, ShieldCheck, Users, Wrench } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3, ChevronDown, Info, Package, ShieldCheck, Users, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import * as XLSX from "xlsx";
@@ -191,12 +193,24 @@ export default function Reports() {
       if (assignedItems && assignedItems.length > 0) {
         const assignedIds = assignedItems.map((a) => a.id);
         const priceMap = Object.fromEntries(assignedItems.map((a) => [a.id, Number(a.price)]));
-        // Use VIEW for automatic deduplication
-        const { data: issueMovements } = await supabase
-          .from("latest_issue_movements")
-          .select("item_id, employee_id")
-          .in("item_id", assignedIds);
-        for (const m of issueMovements ?? []) {
+
+        // Get all issue movements for assigned items
+        const { data: allMovements } = await supabase
+          .from("movements")
+          .select("item_id, employee_id, created_at")
+          .eq("movement_type", "issue")
+          .in("item_id", assignedIds)
+          .order("created_at", { ascending: false });
+
+        // Client-side deduplication: keep only latest movement per item
+        const seen = new Set<string>();
+        const issueMovements = (allMovements ?? []).filter((m) => {
+          if (seen.has(m.item_id)) return false;
+          seen.add(m.item_id);
+          return true;
+        });
+
+        for (const m of issueMovements) {
           if (!heldByEmployee[m.employee_id]) heldByEmployee[m.employee_id] = { count: 0, totalValue: 0 };
           heldByEmployee[m.employee_id].count += 1;
           heldByEmployee[m.employee_id].totalValue += priceMap[m.item_id] ?? 0;
@@ -409,7 +423,46 @@ export default function Reports() {
                 </Tooltip>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="space-y-4">
+              <Collapsible>
+                <Alert className="bg-primary/5 border-primary/20">
+                  <CollapsibleTrigger className="flex items-start justify-between w-full hover:opacity-80 transition-opacity">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-sm">📊 Как да използвате тази справка?</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Кликнете за повече информация</p>
+                      </div>
+                    </div>
+                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <AlertDescription className="text-sm mt-3 pt-3 border-t border-primary/10">
+                      <div className="space-y-2">
+                        <div>
+                          <p className="font-medium mb-1">Справката показва:</p>
+                          <ul className="list-disc list-inside space-y-0.5 ml-1 text-muted-foreground">
+                            <li>Колко артикули държи всеки служител в момента</li>
+                            <li>Обща стойност на отдадените артикули</li>
+                            <li>Брой връщания без/със забележки</li>
+                            <li>Коефициент на повреди (%) - колко от връщанията са с повреда</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="font-medium mb-1">Ползи за мениджъра:</p>
+                          <ul className="list-disc list-inside space-y-0.5 ml-1 text-muted-foreground">
+                            <li>Контрол върху отговорността на служителите</li>
+                            <li>Идентифициране на проблемни служители с чести повреди</li>
+                            <li>Вземане на информирани решения за обучение</li>
+                            <li>Намаляване на разходи за ремонти и подмяна</li>
+                            <li>Следене на финансовата отговорност (обща стойност)</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </CollapsibleContent>
+                </Alert>
+              </Collapsible>
               <Table>
                 <TableHeader>
                   <TableRow>
