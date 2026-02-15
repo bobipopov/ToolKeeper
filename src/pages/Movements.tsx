@@ -119,11 +119,9 @@ export default function Movements() {
       }));
 
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         filtered = filtered.filter(
-          (m) =>
-            m.inventory_items?.inventory_code?.toLowerCase().includes(q) ||
-            m.employees?.name?.toLowerCase().includes(q)
+          (m) => m.inventory_items?.inventory_code?.toLowerCase() === q
         );
       }
 
@@ -234,7 +232,7 @@ export default function Movements() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Код или име..."
+                placeholder="Инвентарен код..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 text-sm"
