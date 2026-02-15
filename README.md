@@ -18,6 +18,9 @@ npm run dev
 
 Приложението стартира на `http://localhost:8080`.
 
+## Vercel среда
+https://tool-keeper.vercel.app/
+
 ## Среда
 
 Копирай `.env.example` в `.env` и попълни стойностите:
