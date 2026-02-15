@@ -321,7 +321,7 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-center">
                   <Button onClick={addToCart} variant="secondary" className="gap-2" disabled={!selectedItem}>
                     <Plus className="w-4 h-4" />
                     Добави в списък

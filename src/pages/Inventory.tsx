@@ -432,7 +432,7 @@ export default function Inventory() {
               <TooltipTrigger asChild>
                 <button
                   onClick={exportToExcel}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted self-end sm:self-auto"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted self-center sm:self-auto"
                   aria-label="Експорт в Excel"
                 >
                   <img src={excelIcon} alt="Excel" className="w-5 h-5" />

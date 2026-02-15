@@ -406,23 +406,25 @@ export default function Reports() {
         <TabsContent value="responsibility">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-primary" />
                   Отговорност на служител
                 </CardTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={exportRespToExcel}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
-                      aria-label="Експорт в Excel"
-                    >
-                      <img src={excelIcon} alt="Excel" className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Експорт в Excel</TooltipContent>
-                </Tooltip>
+                <div className="w-full flex justify-center sm:w-auto">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={exportRespToExcel}
+                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
+                        aria-label="Експорт в Excel"
+                      >
+                        <img src={excelIcon} alt="Excel" className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Експорт в Excel</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -613,23 +615,25 @@ export default function Reports() {
         <TabsContent value="repairs">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
                   Ремонт цена/бр vs Цена на артикула
                 </CardTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={exportRepairsToExcel}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
-                      aria-label="Експорт в Excel"
-                    >
-                      <img src={excelIcon} alt="Excel" className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Експорт в Excel</TooltipContent>
-                </Tooltip>
+                <div className="w-full flex justify-center sm:w-auto">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={exportRepairsToExcel}
+                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
+                        aria-label="Експорт в Excel"
+                      >
+                        <img src={excelIcon} alt="Excel" className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Експорт в Excel</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -780,23 +784,25 @@ export default function Reports() {
         <TabsContent value="stock">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Package className="w-5 h-5 text-primary" />
                   Налични артикули в склада ({sortedStockItems.length})
                 </CardTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={exportStockToExcel}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
-                      aria-label="Експорт в Excel"
-                    >
-                      <img src={excelIcon} alt="Excel" className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Експорт в Excel</TooltipContent>
-                </Tooltip>
+                <div className="w-full flex justify-center sm:w-auto">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={exportStockToExcel}
+                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/40 bg-muted/50 opacity-70 transition-all hover:opacity-100 hover:border-primary hover:bg-muted"
+                        aria-label="Експорт в Excel"
+                      >
+                        <img src={excelIcon} alt="Excel" className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Експорт в Excel</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
