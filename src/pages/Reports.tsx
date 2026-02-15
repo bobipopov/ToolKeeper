@@ -389,7 +389,7 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="text-center">
         <h1 className="text-2xl font-bold text-foreground">Справки</h1>
         <p className="text-sm text-muted-foreground mt-1">Отчети и анализи</p>
       </div>

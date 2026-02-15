@@ -104,7 +104,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Потребители</h1>
           <p className="text-sm text-muted-foreground mt-1">{users.length} общо</p>
         </div>

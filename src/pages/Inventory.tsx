@@ -320,7 +320,7 @@ export default function Inventory() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
+        <div className="text-center sm:text-left w-full sm:w-auto">
           <h1 className="text-2xl font-bold text-foreground">Инвентар</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {filteredItems.length} артикула{searchQuery && ` (от ${items.length})`}

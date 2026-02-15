@@ -135,9 +135,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </Sheet>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden flex items-center gap-3 p-4 border-b border-border bg-background">
-          <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)}>
-            <Menu className="w-5 h-5" />
+        <header className="md:hidden relative flex items-center justify-center p-4 border-b border-border bg-background">
+          <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="absolute left-4">
+            <div className="flex flex-col gap-1.5">
+              <div className="w-6 h-0.5 bg-foreground rounded-full"></div>
+              <div className="w-6 h-0.5 bg-foreground rounded-full"></div>
+              <div className="w-6 h-0.5 bg-foreground rounded-full"></div>
+            </div>
           </Button>
           <Link to="/" className="flex items-center">
             <img src={logoImage} alt="Склад" className="h-8 w-auto" />

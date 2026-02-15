@@ -144,9 +144,9 @@ export default function Movements() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+      <div className="flex items-center justify-center gap-3">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
             <Calendar className="w-6 h-6 text-primary" />
             История на движенията
           </h1>

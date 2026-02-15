@@ -157,7 +157,7 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="text-center">
         <h1 className="text-2xl font-bold text-foreground">Табло</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Преглед на инвентара • {format(new Date(), "dd.MM.yyyy")}

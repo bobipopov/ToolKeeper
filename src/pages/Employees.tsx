@@ -162,7 +162,7 @@ export default function Employees() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Служители</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {filteredEmployees.length} служител{filteredEmployees.length !== 1 ? "и" : ""}
