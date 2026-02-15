@@ -21,6 +21,7 @@ import excelIcon from "@/assets/excell.svg";
 type MovementWithRelations = Tables<"movements"> & {
   inventory_items: { inventory_code: string; categories: { name: string } | null } | null;
   employees: { name: string } | null;
+  issued_by_user: { full_name: string } | null;
 };
 
 export default function Movements() {
@@ -104,8 +105,19 @@ export default function Movements() {
       const { data, error } = await query;
       if (error) throw error;
 
+      // Get user profiles for issued_by
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name");
+
+      const profilesMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+
       // Client-side search filter (for inventory code)
-      let filtered = data as MovementWithRelations[];
+      let filtered = (data as MovementWithRelations[]).map(m => ({
+        ...m,
+        issued_by_user: m.issued_by ? { full_name: profilesMap.get(m.issued_by) || null } : null
+      }));
+
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         filtered = filtered.filter(
@@ -132,6 +144,7 @@ export default function Movements() {
       Тип: m.movement_type === "issue" ? "Отдаване" : "Приемане",
       Състояние: m.condition || "—",
       Забележка: m.consumable_note || m.damage_notes || "—",
+      "Изпълнено от:": m.issued_by_user?.full_name || "Системата",
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -307,19 +320,20 @@ export default function Movements() {
                 <TableHead>Тип</TableHead>
                 <TableHead>Състояние</TableHead>
                 <TableHead>Забележка</TableHead>
+                <TableHead>Изпълнено от:</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Зареждане...
                   </TableCell>
                 </TableRow>
               )}
               {!isPending && pagedMovements.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     {movements.length === 0 ? "Няма движения за избрания период" : "Няма резултати на тази страница"}
                   </TableCell>
@@ -327,8 +341,11 @@ export default function Movements() {
               )}
               {pagedMovements.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium whitespace-nowrap">
-                    {format(new Date(m.created_at), "dd.MM.yyyy HH:mm")}
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span>{format(new Date(m.created_at), "dd.MM.yyyy")}</span>
+                      <span className="text-xs text-muted-foreground">{format(new Date(m.created_at), "HH:mm")}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className="font-mono">{m.inventory_items?.inventory_code || "—"}</span>
@@ -376,6 +393,9 @@ export default function Movements() {
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate text-muted-foreground">
                     {m.consumable_note || m.damage_notes || "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {m.issued_by_user?.full_name || <span className="italic">Системата</span>}
                   </TableCell>
                 </TableRow>
               ))}
