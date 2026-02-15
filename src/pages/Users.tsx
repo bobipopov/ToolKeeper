@@ -49,13 +49,11 @@ export default function UsersPage() {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke("admin-create-user", {
-        body: {
-          email: email.trim().toLowerCase(),
-          password,
-          fullName: fullName.trim(),
-          role,
-        },
+      const { error } = await supabase.rpc("admin_create_user", {
+        _email: email.trim().toLowerCase(),
+        _password: password,
+        _full_name: fullName.trim(),
+        _role: role,
       });
       if (error) throw error;
     },
