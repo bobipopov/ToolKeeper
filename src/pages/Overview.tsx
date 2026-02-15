@@ -146,8 +146,8 @@ export default function Overview() {
   }, [monthMovements]);
 
   const chartConfig = {
-    issues: { label: "Отдавания", color: "hsl(38 92% 50%)" },
-    returns: { label: "Връщания", color: "hsl(150 60% 40%)" },
+    issues: { label: "Отдавания ", color: "hsl(38 92% 50%)" },
+    returns: { label: "Връщания ", color: "hsl(150 60% 40%)" },
   };
 
   const handleBarClick = (data: any) => {
