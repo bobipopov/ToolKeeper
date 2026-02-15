@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ArrowLeft, ArrowRight, Calendar, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { format, startOfDay, endOfDay, parse } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import * as XLSX from "xlsx";
@@ -342,14 +343,14 @@ export default function Movements() {
                     <div className="flex items-center gap-2">
                       {m.movement_type === "issue" ? (
                         <>
-                          <ArrowRight className="w-4 h-4 text-primary" />
+                          <FaArrowRight className="w-5 h-5 text-primary" />
                           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                             Отдаване
                           </Badge>
                         </>
                       ) : (
                         <>
-                          <ArrowLeft className="w-4 h-4 text-success" />
+                          <FaArrowLeft className="w-5 h-5 text-success" />
                           <Badge variant="outline" className="bg-success/10 text-success border-success/20">
                             Приемане
                           </Badge>

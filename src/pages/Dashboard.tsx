@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowLeft, Plus, Trash2, Package } from "lucide-react";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -223,15 +224,15 @@ export default function Dashboard() {
           onClick={() => { setMovementType("issue"); setCart([]); }}
           className="gap-2"
         >
-          <ArrowRight className="w-4 h-4" />
+          <FaArrowRight className="w-7 h-7" />
           Отдаване
         </Button>
         <Button
-          variant={movementType === "return" ? "default" : "secondary"}
+          variant="secondary"
           onClick={() => { setMovementType("return"); setCart([]); setReturnChecked({}); setReturnConditions({}); }}
-          className="gap-2"
+          className={`gap-2 ${movementType === "return" ? "bg-success hover:bg-success/90 text-white" : ""}`}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <FaArrowLeft className="w-7 h-7" />
           Приемане
         </Button>
       </div>
@@ -487,9 +488,9 @@ export default function Dashboard() {
               {recentMovements.map((m) => (
                 <div key={m.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-secondary/30 transition-colors">
                   {m.movement_type === "issue" ? (
-                    <ArrowRight className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <FaArrowRight className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                   ) : (
-                    <ArrowLeft className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                    <FaArrowLeft className="w-5 h-5 text-success mt-0.5 shrink-0" />
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
