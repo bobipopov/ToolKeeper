@@ -312,7 +312,7 @@ export default function Movements() {
             <TableHeader>
               <TableRow>
                 <TableHead>Дата и час</TableHead>
-                <TableHead>Артикул</TableHead>
+                <TableHead>Код</TableHead>
                 <TableHead>Категория</TableHead>
                 <TableHead>Служител</TableHead>
                 <TableHead>Тип</TableHead>

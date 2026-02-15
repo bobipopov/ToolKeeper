@@ -244,7 +244,7 @@ export default function Inventory() {
   const PAGE_SIZE = 25;
 
   const filteredItems = items.filter((item) =>
-    !searchQuery || item.inventory_code.toLowerCase().includes(searchQuery.toLowerCase())
+    !searchQuery || item.inventory_code.toLowerCase() === searchQuery.toLowerCase().trim()
   );
 
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -353,7 +353,7 @@ export default function Inventory() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Инвентарен номер</Label>
+                  <Label>Инвентарен код</Label>
                   <Input value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="напр. 001" />
                 </div>
                 <div className="space-y-2">
