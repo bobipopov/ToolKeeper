@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, ArrowLeft, Wrench, AlertTriangle, Package, ChevronsDown } from "lucide-react";
+import { Wrench, AlertTriangle, Package, ChevronsDown } from "lucide-react";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -113,7 +114,7 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
   const exportToExcel = () => {
     const rows = timeline.map((entry) => ({
       "Дата": format(new Date(entry.date), "dd.MM.yyyy HH:mm"),
-      "Тип": entry.type === "issue" ? "Отдаден" : entry.type === "return" ? "Приет" : "Ремонт",
+      "Тип": entry.type === "issue" ? "Отдаден" : entry.type === "return" ? "Върнат" : "Ремонт",
       "Служител": entry.employeeName ?? "",
       "Състояние": entry.condition && entry.condition !== "Без забележки" ? entry.condition : "",
       "Цена ремонт (€)": entry.type === "repair" ? Number(entry.repairCost ?? 0).toFixed(2) : "",
@@ -128,14 +129,14 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
 
   const typeConfig = {
     issue: {
-      icon: ArrowRight,
+      icon: FaArrowRight,
       label: "Отдаден",
       color: "text-primary",
       bg: "bg-primary/10",
     },
     return: {
-      icon: ArrowLeft,
-      label: "Приет",
+      icon: FaArrowLeft,
+      label: "Върнат",
       color: "text-success",
       bg: "bg-success/10",
     },

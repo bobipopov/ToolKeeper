@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, ArrowLeft, Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package } from "lucide-react";
 import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -158,7 +158,7 @@ export default function Dashboard() {
   const returnMutation = useMutation({
     mutationFn: async () => {
       const checkedIds = Object.entries(returnChecked).filter(([, v]) => v).map(([k]) => k);
-      if (!returnEmployee || checkedIds.length === 0) throw new Error("Моля, изберете артикули за приемане");
+      if (!returnEmployee || checkedIds.length === 0) throw new Error("Моля, изберете артикули за връщане");
       const movements = checkedIds.map((itemId) => ({
         item_id: itemId,
         employee_id: returnEmployee,
@@ -171,7 +171,7 @@ export default function Dashboard() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Артикулите са приети успешно!");
+      toast.success("Артикулите са върнати успешно!");
       setReturnChecked({});
       setReturnConditions({});
       setReturnDamageNotes({});
@@ -211,9 +211,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-foreground">Отдаване/Приемане</h1>
+        <h1 className="text-2xl font-bold text-foreground">Отдаване/Връщане</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Отдаване и приемане на инструменти • {format(new Date(), "dd.MM.yyyy")}
+          Отдаване и връщане на инструменти • {format(new Date(), "dd.MM.yyyy")}
         </p>
       </div>
 
@@ -233,7 +233,7 @@ export default function Dashboard() {
           className={`gap-2 ${movementType === "return" ? "bg-success hover:bg-success/90 text-white" : ""}`}
         >
           <FaArrowLeft className="w-7 h-7" />
-          Приемане
+          Връщане
         </Button>
       </div>
 
@@ -241,7 +241,7 @@ export default function Dashboard() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">
-              {movementType === "issue" ? "Отдаване на инструменти" : "Приемане на инструменти"}
+              {movementType === "issue" ? "Отдаване на инструменти" : "Връщане на инструменти"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -361,7 +361,7 @@ export default function Dashboard() {
                       disabled={!selectedEmployee || issueMutation.isPending}
                       className="w-full mt-4 gap-2"
                     >
-                      <ArrowRight className="w-4 h-4" />
+                      <FaArrowRight className="w-5 h-5" />
                       {issueMutation.isPending ? "Обработка..." : `Отдай ${cart.length} артикула`}
                     </Button>
                   </div>
@@ -453,8 +453,8 @@ export default function Dashboard() {
                         disabled={returnMutation.isPending}
                         className="w-full mt-4 gap-2"
                       >
-                        <ArrowLeft className="w-4 h-4" />
-                        {returnMutation.isPending ? "Обработка..." : `Приеми ${checkedCount} артикула`}
+                        <FaArrowLeft className="w-5 h-5" />
+                        {returnMutation.isPending ? "Обработка..." : `Върни ${checkedCount} артикула`}
                       </Button>
                     )}
                   </div>

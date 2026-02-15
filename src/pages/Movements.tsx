@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { ArrowLeft, ArrowRight, Calendar, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { format, startOfDay, endOfDay, parse } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -141,7 +141,7 @@ export default function Movements() {
       Код: m.inventory_items?.inventory_code || "—",
       Категория: m.inventory_items?.categories?.name || "—",
       Служител: m.employees?.name || "Изтрит",
-      Тип: m.movement_type === "issue" ? "Отдаване" : "Приемане",
+      Тип: m.movement_type === "issue" ? "Отдаване" : "Връщане",
       Състояние: m.condition || "—",
       Забележка: m.consumable_note || m.damage_notes || "—",
       "Изпълнено от:": m.issued_by_user?.full_name || "Системата",
@@ -223,7 +223,7 @@ export default function Movements() {
               <SelectContent>
                 <SelectItem value="all">Всички</SelectItem>
                 <SelectItem value="issue">Отдаване</SelectItem>
-                <SelectItem value="return">Приемане</SelectItem>
+                <SelectItem value="return">Връщане</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -369,7 +369,7 @@ export default function Movements() {
                         <>
                           <FaArrowLeft className="w-5 h-5 text-success" />
                           <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                            Приемане
+                            Връщане
                           </Badge>
                         </>
                       )}

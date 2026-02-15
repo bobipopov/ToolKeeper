@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { ArrowRight, ArrowLeft, Warehouse, Euro, TrendingUp, Users, AlertTriangle } from "lucide-react";
+import { Warehouse, Euro, TrendingUp, Users, AlertTriangle } from "lucide-react";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 
 export default function Overview() {
@@ -228,14 +229,14 @@ export default function Overview() {
             <div className="flex gap-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <ArrowRight className="w-4 h-4 text-primary" />
+                  <FaArrowRight className="w-5 h-5 text-primary" />
                   <span className="text-2xl font-bold">{monthStats.issues}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Отдавания</span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4 text-success" />
+                  <FaArrowLeft className="w-5 h-5 text-success" />
                   <span className="text-2xl font-bold">{monthStats.returns}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Връщания</span>

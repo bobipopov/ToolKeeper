@@ -106,7 +106,7 @@ export default function Employees() {
       queryClient.invalidateQueries({ queryKey: ["employees_all"] });
       queryClient.invalidateQueries({ queryKey: ["inventory_items"] });
       queryClient.invalidateQueries({ queryKey: ["recent_movements"] });
-      toast.success("Служителят е деактивиран и артикулите са приети");
+      toast.success("Служителят е деактивиран и артикулите са върнати");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -350,7 +350,7 @@ export default function Employees() {
           </div>
 
           <p className="text-sm text-primary font-medium">
-            При деактивиране всички артикули ще бъдат автоматично приети и върнати в склада.
+            При деактивиране всички артикули ще бъдат автоматично върнати в склада.
           </p>
 
           <div className="flex justify-end gap-2 mt-2">
@@ -361,7 +361,7 @@ export default function Employees() {
               variant="destructive"
               onClick={() => setConfirmDeactivate(true)}
             >
-              Приеми артикулите и деактивирай
+              Върни артикулите и деактивирай
             </Button>
           </div>
         </DialogContent>

@@ -19,7 +19,7 @@ import logoImage from "@/assets/MLogo.png";
 
 const navItems = [
   { to: "/", label: "Табло", icon: LayoutDashboard, roles: ["admin", "user"] },
-  { to: "/movements", label: "Отдаване/Приемане", icon: ArrowLeftRight, roles: ["admin", "user"] },
+  { to: "/movements", label: "Отдаване/Връщане", icon: ArrowLeftRight, roles: ["admin", "user"] },
   { to: "/history", label: "История", icon: History, roles: ["admin", "user"] },
   { to: "/inventory", label: "Инвентар", icon: Package, roles: ["admin", "user"] },
   { to: "/employees", label: "Служители", icon: Users, roles: ["admin"] },
