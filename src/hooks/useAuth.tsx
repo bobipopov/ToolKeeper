@@ -78,6 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchRoleFromDB(user.id).then((r) => {
       if (!cancelled) setRole(r);
     });
+
+    // Update last activity when user is present
+    supabase.rpc("update_last_activity").catch((err) => {
+      console.warn("Failed to update last activity:", err);
+    });
+
     return () => { cancelled = true; };
   }, [user?.id]);
 

@@ -20,6 +20,7 @@ type AppUser = {
   role: "admin" | "user";
   created_at: string;
   last_sign_in_at: string | null;
+  last_activity_at: string | null;
 };
 
 export default function UsersPage() {
@@ -182,7 +183,7 @@ export default function UsersPage() {
                 <TableHead>Имейл</TableHead>
                 <TableHead>Име</TableHead>
                 <TableHead>Роля</TableHead>
-                <TableHead>Последен вход</TableHead>
+                <TableHead>Последна активност</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
@@ -207,7 +208,11 @@ export default function UsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString("bg-BG") : "Никога"}
+                      {u.last_activity_at
+                        ? new Date(u.last_activity_at).toLocaleString("bg-BG")
+                        : u.last_sign_in_at
+                          ? new Date(u.last_sign_in_at).toLocaleString("bg-BG")
+                          : "Никога"}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
