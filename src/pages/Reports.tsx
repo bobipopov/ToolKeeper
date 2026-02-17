@@ -38,7 +38,7 @@ export default function Reports() {
   const [repairSortDir, setRepairSortDir] = useState<"asc" | "desc">("asc");
 
   // Sort state for responsibility
-  type RespSortKey = "employee" | "totalItems" | "goodReturns" | "badReturns" | "damagePercent";
+  type RespSortKey = "employee" | "status" | "totalItems" | "goodReturns" | "badReturns" | "damagePercent";
   const [respSortKey, setRespSortKey] = useState<RespSortKey | null>(null);
   const [respSortDir, setRespSortDir] = useState<"asc" | "desc">("asc");
 
@@ -305,6 +305,8 @@ export default function Reports() {
         employeeId: emp.id,
         employee: emp.name,
         isActive: emp.is_active,
+        deactivationReason: emp.deactivation_reason,
+        deactivatedAt: emp.deactivated_at,
         totalItems: itemCount,
         totalValue: totalValue,
         damage: dmg,
@@ -316,6 +318,7 @@ export default function Reports() {
     const dir = respSortDir === "asc" ? 1 : -1;
     switch (respSortKey) {
       case "employee": return dir * a.employee.localeCompare(b.employee);
+      case "status": return dir * ((a.isActive ? 1 : 0) - (b.isActive ? 1 : 0));
       case "totalItems": return dir * (a.totalItems - b.totalItems);
       case "goodReturns": {
         const goodA = (a.damage?.totalReturns ?? 0) - (a.damage?.badReturns ?? 0);
@@ -359,6 +362,9 @@ export default function Reports() {
       const dmgPct = totalReturns > 0 ? (badReturns / totalReturns) * 100 : 0;
       return {
         "Служител": emp.employee,
+        "Статус": emp.isActive ? "Активен" : "Неактивен",
+        "Причина деактивация": emp.deactivationReason || "",
+        "Дата деактивация": emp.deactivatedAt ? format(new Date(emp.deactivatedAt), "dd.MM.yyyy") : "",
         "Отдадени артикули": emp.totalItems,
         "Връщания без забележки": goodReturns,
         "Връщания със забележки": badReturns,
@@ -496,7 +502,9 @@ export default function Reports() {
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleRespSort("employee")}>
                       <span className="inline-flex items-center gap-1">Служител <RespSortIcon col="employee" /></span>
                     </TableHead>
-                    <TableHead>Статус</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleRespSort("status")}>
+                      <span className="inline-flex items-center gap-1">Статус <RespSortIcon col="status" /></span>
+                    </TableHead>
                     <TableHead className="text-center cursor-pointer select-none" onClick={() => toggleRespSort("totalItems")}>
                       <span className="inline-flex items-center gap-1 justify-center">Артикули <RespSortIcon col="totalItems" /></span>
                     </TableHead>
@@ -530,12 +538,32 @@ export default function Reports() {
                       <TableRow key={emp.employeeId}>
                         <TableCell className="font-medium">{emp.employee}</TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={emp.isActive ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}
-                          >
-                            {emp.isActive ? "Активен" : "Неактивен"}
-                          </Badge>
+                          {emp.isActive ? (
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                              Активен
+                            </Badge>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex flex-col items-center gap-0.5">
+                                  <Badge variant="outline" className="bg-muted text-muted-foreground cursor-help">
+                                    Неактивен
+                                  </Badge>
+                                  {emp.deactivationReason && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {emp.deactivationReason}
+                                    </span>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              {emp.deactivationReason && emp.deactivatedAt && (
+                                <TooltipContent>
+                                  <div>Причина: {emp.deactivationReason}</div>
+                                  <div>Дата: {format(new Date(emp.deactivatedAt), "dd.MM.yyyy")}</div>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          )}
                         </TableCell>
                         <TableCell className="text-center font-medium">{emp.totalItems}</TableCell>
                         <TableCell className="text-right">

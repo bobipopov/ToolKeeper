@@ -92,16 +92,31 @@ export default function Employees() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive, reason }: { id: string; isActive: boolean; reason?: string }) => {
+      // Get current employee data
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("id", id)
+        .single();
+
+      if (!employee) throw new Error("Служителят не е намерен");
+
       const updateData: any = { is_active: !isActive };
 
-      // If deactivating, add reason and timestamp
+      // If deactivating, add prefix, reason and timestamp
       if (isActive && reason) {
+        // Add X emoji prefix if not already present
+        const newName = employee.name.startsWith("❌ ") ? employee.name : `❌ ${employee.name}`;
+        updateData.name = newName;
         updateData.deactivation_reason = reason;
         updateData.deactivated_at = new Date().toISOString();
       }
 
-      // If reactivating, clear reason and timestamp
+      // If reactivating, remove prefix, clear reason and timestamp
       if (!isActive) {
+        // Remove X emoji prefix
+        const newName = employee.name.replace(/^❌\s/, '');
+        updateData.name = newName;
         updateData.deactivation_reason = null;
         updateData.deactivated_at = null;
       }
@@ -139,6 +154,15 @@ export default function Employees() {
 
   const deactivateWithReturnMutation = useMutation({
     mutationFn: async ({ employeeId, reason }: { employeeId: string; reason: string }) => {
+      // Get current employee name
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("id", employeeId)
+        .single();
+
+      if (!employee) throw new Error("Служителят не е намерен");
+
       // Use atomic SQL function to deactivate employee and return items in one transaction
       const { error } = await supabase.rpc("deactivate_employee_with_returns", {
         _employee_id: employeeId,
@@ -146,10 +170,12 @@ export default function Employees() {
       });
       if (error) throw error;
 
-      // Update deactivation reason and timestamp
+      // Add prefix, update deactivation reason and timestamp
+      const newName = employee.name.startsWith("❌ ") ? employee.name : `❌ ${employee.name}`;
       const { error: updateErr } = await supabase
         .from("employees")
         .update({
+          name: newName,
           deactivation_reason: reason,
           deactivated_at: new Date().toISOString(),
         })
@@ -167,28 +193,59 @@ export default function Employees() {
 
   const handleDeactivate = async (id: string, empName: string) => {
     // Check for assigned items before deactivating
-    const { data: assignedItems } = await supabase
+    const { data: assignedItems, error: itemsErr } = await supabase
       .from("inventory_items")
-      .select("id")
+      .select("id, inventory_code, categories(name)")
       .eq("status", "assigned");
+
+    if (itemsErr) {
+      toast.error("Грешка при проверка на артикулите");
+      return;
+    }
+
     if (assignedItems && assignedItems.length > 0) {
       const assignedIds = assignedItems.map((a) => a.id);
-      // Use VIEW for automatic deduplication
-      const { data: movements } = await supabase
-        .from("latest_issue_movements")
-        .select("item_id, inventory_items(inventory_code, categories(name))")
+
+      // Get all issue movements for assigned items, then filter client-side
+      const { data: allMovements, error: movErr } = await supabase
+        .from("movements")
+        .select("item_id, employee_id, created_at")
+        .eq("movement_type", "issue")
         .in("item_id", assignedIds)
-        .eq("employee_id", id);
-      const empItems = (movements ?? []).map((m) => ({
-        itemId: m.item_id,
-        code: (m.inventory_items as { inventory_code: string } | null)?.inventory_code ?? "—",
-        category: (m.inventory_items as { categories: { name: string } | null } | null)?.categories?.name ?? "",
-      }));
-      if (empItems.length > 0) {
+        .order("created_at", { ascending: false });
+
+      if (movErr) {
+        toast.error("Грешка при проверка на движенията");
+        return;
+      }
+
+      // Client-side deduplication: keep only latest movement per item
+      const seen = new Set<string>();
+      const latestMovements = (allMovements ?? []).filter((m) => {
+        if (seen.has(m.item_id)) return false;
+        seen.add(m.item_id);
+        return true;
+      });
+
+      // Filter for this employee only
+      const employeeMovements = latestMovements.filter((m) => m.employee_id === id);
+
+      if (employeeMovements.length > 0) {
+        // Map movements to items with details
+        const empItems = employeeMovements.map((m) => {
+          const item = assignedItems.find((i) => i.id === m.item_id);
+          return {
+            itemId: m.item_id,
+            code: item?.inventory_code ?? "—",
+            category: (item?.categories as { name: string } | null)?.name ?? "",
+          };
+        });
+
         setDeactivateTarget({ id, name: empName, items: empItems });
         return;
       }
     }
+
     // No items — show reason dialog
     setDeactivateReasonDialog({ id, name: empName });
   };
@@ -329,7 +386,7 @@ export default function Employees() {
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="inline-flex flex-col gap-0.5">
+                          <div className="inline-flex flex-col items-center gap-0.5">
                             <Badge
                               variant="outline"
                               className="bg-muted text-muted-foreground cursor-help"
