@@ -80,9 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Update last activity when user is present
-    supabase.rpc("update_last_activity").catch((err) => {
-      console.warn("Failed to update last activity:", err);
-    });
+    supabase
+      .rpc("update_last_activity")
+      .then(() => {})
+      .catch((err) => {
+        console.warn("Failed to update last activity:", err);
+      });
 
     return () => { cancelled = true; };
   }, [user?.id]);
