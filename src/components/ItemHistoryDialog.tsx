@@ -24,13 +24,14 @@ interface Props {
 type TimelineEntry = {
   id: string;
   date: string;
-  type: "issue" | "return" | "repair";
+  type: "issue" | "return" | "repair" | "write_off";
   employeeName?: string;
   condition?: string | null;
   consumableNote?: string | null;
   issuedByName?: string | null;
   repairCost?: number;
   repairNotes?: string | null;
+  writeOffReason?: string | null;
 };
 
 export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Props) {
@@ -59,6 +60,13 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
         .eq("item_id", itemId)
         .order("created_at", { ascending: false });
       if (repErr) throw repErr;
+
+      // Fetch write-off information for this item
+      const { data: item } = await supabase
+        .from("inventory_items")
+        .select("status, write_off_reason, written_off_at")
+        .eq("id", itemId)
+        .single();
 
       // Fetch profile names for issued_by user IDs
       const userIds = [...new Set((movements ?? []).map((m) => m.issued_by).filter(Boolean))] as string[];
@@ -100,6 +108,28 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
         });
       }
 
+      // Add write-off entry if item is written off
+      if (item?.status === "written_off" && item.write_off_reason) {
+        // Use written_off_at timestamp if available, otherwise extract from code
+        let writeOffDate = item.written_off_at || new Date().toISOString();
+
+        if (!item.written_off_at) {
+          // Fallback: extract date from archived code (e.g., "105_BRK_17.02.2026")
+          const codeMatch = itemCode.match(/_BRK_(\d{2}\.\d{2}\.\d{4})/);
+          if (codeMatch) {
+            const [day, month, year] = codeMatch[1].split('.');
+            writeOffDate = new Date(`${year}-${month}-${day}T12:00:00`).toISOString();
+          }
+        }
+
+        entries.push({
+          id: `writeoff_${itemId}`,
+          date: writeOffDate,
+          type: "write_off",
+          writeOffReason: item.write_off_reason,
+        });
+      }
+
       // Sort by date descending (newest first)
       entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -114,11 +144,11 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
   const exportToExcel = () => {
     const rows = timeline.map((entry) => ({
       "Дата": format(new Date(entry.date), "dd.MM.yyyy HH:mm"),
-      "Тип": entry.type === "issue" ? "Отдаден" : entry.type === "return" ? "Върнат" : "Ремонт",
+      "Тип": entry.type === "issue" ? "Отдаден" : entry.type === "return" ? "Върнат" : entry.type === "repair" ? "Ремонт" : "Бракуван",
       "Служител": entry.employeeName ?? "",
       "Състояние": entry.condition && entry.condition !== "Без забележки" ? entry.condition : "",
       "Цена ремонт (€)": entry.type === "repair" ? Number(entry.repairCost ?? 0).toFixed(2) : "",
-      "Забележка": entry.consumableNote || entry.repairNotes || "",
+      "Забележка": entry.consumableNote || entry.repairNotes || (entry.type === "write_off" ? entry.writeOffReason : "") || "",
       "Предал": entry.issuedByName ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -146,11 +176,17 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
       color: "text-orange-400",
       bg: "bg-orange-500/10",
     },
+    write_off: {
+      icon: AlertTriangle,
+      label: "Бракуван",
+      color: "text-destructive",
+      bg: "bg-destructive/10",
+    },
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg [&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 pr-20">
             <Package className="w-5 h-5 text-primary shrink-0" />
@@ -252,6 +288,13 @@ export function ItemHistoryDialog({ itemId, itemCode, open, onOpenChange }: Prop
                             {entry.repairNotes && (
                               <span className="text-muted-foreground"> — {entry.repairNotes}</span>
                             )}
+                          </p>
+                        )}
+
+                        {entry.type === "write_off" && (
+                          <p className="text-sm mt-1">
+                            <span className="text-muted-foreground">Причина: </span>
+                            <span className="font-medium">{entry.writeOffReason}</span>
                           </p>
                         )}
 

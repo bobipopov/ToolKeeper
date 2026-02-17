@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Package, Plus, Search, Trash2, UserCheck, UserMinus, Users } from "lucide-react";
+import { AlertTriangle, Package, Pencil, Plus, Search, Trash2, UserCheck, UserMinus, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -33,6 +33,12 @@ export default function Employees() {
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editEmployeeId, setEditEmployeeId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editPosition, setEditPosition] = useState("");
+  const [deactivateReasonDialog, setDeactivateReasonDialog] = useState<{ id: string; name: string } | null>(null);
+  const [deactivationReason, setDeactivationReason] = useState("");
 
   const { data: employees = [] } = useQuery({
     queryKey: ["employees_all"],
@@ -60,9 +66,47 @@ export default function Employees() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      const trimmedName = editName.trim();
+      if (!trimmedName) throw new Error("Името е задължително");
+      const { error } = await supabase
+        .from("employees")
+        .update({
+          name: trimmedName,
+          position: editPosition.trim() || null,
+        })
+        .eq("id", editEmployeeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Служителят е редактиран успешно!");
+      setEditOpen(false);
+      setEditEmployeeId("");
+      setEditName("");
+      setEditPosition("");
+      queryClient.invalidateQueries({ queryKey: ["employees_all"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase.from("employees").update({ is_active: !isActive }).eq("id", id);
+    mutationFn: async ({ id, isActive, reason }: { id: string; isActive: boolean; reason?: string }) => {
+      const updateData: any = { is_active: !isActive };
+
+      // If deactivating, add reason and timestamp
+      if (isActive && reason) {
+        updateData.deactivation_reason = reason;
+        updateData.deactivated_at = new Date().toISOString();
+      }
+
+      // If reactivating, clear reason and timestamp
+      if (!isActive) {
+        updateData.deactivation_reason = null;
+        updateData.deactivated_at = null;
+      }
+
+      const { error } = await supabase.from("employees").update(updateData).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -94,13 +138,23 @@ export default function Employees() {
   });
 
   const deactivateWithReturnMutation = useMutation({
-    mutationFn: async ({ employeeId }: { employeeId: string }) => {
+    mutationFn: async ({ employeeId, reason }: { employeeId: string; reason: string }) => {
       // Use atomic SQL function to deactivate employee and return items in one transaction
       const { error } = await supabase.rpc("deactivate_employee_with_returns", {
         _employee_id: employeeId,
         _issued_by_user_id: user?.id,
       });
       if (error) throw error;
+
+      // Update deactivation reason and timestamp
+      const { error: updateErr } = await supabase
+        .from("employees")
+        .update({
+          deactivation_reason: reason,
+          deactivated_at: new Date().toISOString(),
+        })
+        .eq("id", employeeId);
+      if (updateErr) throw updateErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees_all"] });
@@ -135,8 +189,8 @@ export default function Employees() {
         return;
       }
     }
-    // No items — deactivate directly
-    toggleMutation.mutate({ id, isActive: true });
+    // No items — show reason dialog
+    setDeactivateReasonDialog({ id, name: empName });
   };
 
   const filteredEmployees = employees.filter((e) => {
@@ -151,6 +205,8 @@ export default function Employees() {
       "Име": emp.name,
       "Длъжност": emp.position || "",
       "Статус": emp.is_active ? "Активен" : "Неактивен",
+      "Причина за деактивиране": !emp.is_active && emp.deactivation_reason ? emp.deactivation_reason : "",
+      "Дата на деактивиране": !emp.is_active && emp.deactivated_at ? format(new Date(emp.deactivated_at), "dd.MM.yyyy") : "",
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -263,15 +319,56 @@ export default function Employees() {
                   <TableCell className="font-medium">{e.name}</TableCell>
                   <TableCell className="text-muted-foreground">{e.position || "-"}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={e.is_active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}
-                    >
-                      {e.is_active ? "Активен" : "Неактивен"}
-                    </Badge>
+                    {e.is_active ? (
+                      <Badge
+                        variant="outline"
+                        className="bg-success/10 text-success border-success/20"
+                      >
+                        Активен
+                      </Badge>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="inline-flex flex-col gap-0.5">
+                            <Badge
+                              variant="outline"
+                              className="bg-muted text-muted-foreground cursor-help"
+                            >
+                              Неактивен
+                            </Badge>
+                            {e.deactivation_reason && (
+                              <span className="text-xs text-muted-foreground">
+                                {e.deactivation_reason}
+                              </span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        {e.deactivation_reason && e.deactivated_at && (
+                          <TooltipContent>
+                            <div className="text-xs">
+                              <div>Причина: {e.deactivation_reason}</div>
+                              <div>Дата: {format(new Date(e.deactivated_at), "dd.MM.yyyy")}</div>
+                            </div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditEmployeeId(e.id);
+                          setEditName(e.name);
+                          setEditPosition(e.position || "");
+                          setEditOpen(true);
+                        }}
+                        title="Редакция"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -304,6 +401,120 @@ export default function Employees() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit employee dialog */}
+      <Dialog open={editOpen} onOpenChange={(open) => {
+        setEditOpen(open);
+        if (!open) {
+          setEditEmployeeId("");
+          setEditName("");
+          setEditPosition("");
+        }
+      }}>
+        <DialogContent className="[&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
+          <DialogHeader>
+            <DialogTitle>Редакция на служител</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Име</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Пълно име"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Длъжност</Label>
+              <Input
+                value={editPosition}
+                onChange={(e) => setEditPosition(e.target.value)}
+                placeholder="Длъжност (по избор)"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setEditOpen(false);
+                  setEditEmployeeId("");
+                  setEditName("");
+                  setEditPosition("");
+                }}
+              >
+                Отказ
+              </Button>
+              <Button
+                onClick={() => editMutation.mutate()}
+                disabled={!editName.trim() || editMutation.isPending}
+              >
+                {editMutation.isPending ? "Запазване..." : "Запази"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivation reason dialog */}
+      <Dialog open={!!deactivateReasonDialog} onOpenChange={(open) => {
+        if (!open) {
+          setDeactivateReasonDialog(null);
+          setDeactivationReason("");
+        }
+      }}>
+        <DialogContent className="[&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
+          <DialogHeader>
+            <DialogTitle>Деактивиране на служител</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Изберете причина за деактивиране на <span className="font-medium text-foreground">{deactivateReasonDialog?.name}</span>:
+            </p>
+            <div className="space-y-2">
+              <Label>Причина</Label>
+              <Select value={deactivationReason} onValueChange={setDeactivationReason}>
+                <SelectTrigger><SelectValue placeholder="Изберете причина" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Напуснал">🚶 Напуснал</SelectItem>
+                  <SelectItem value="Уволнен">❌ Уволнен</SelectItem>
+                  <SelectItem value="Дългосрочен отпуск">🏖️ Дългосрочен отпуск</SelectItem>
+                  <SelectItem value="Пенсиониран">👴 Пенсиониран</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDeactivateReasonDialog(null);
+                  setDeactivationReason("");
+                }}
+              >
+                Отказ
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (deactivateReasonDialog && deactivationReason) {
+                    toggleMutation.mutate(
+                      { id: deactivateReasonDialog.id, isActive: true, reason: deactivationReason },
+                      {
+                        onSuccess: () => {
+                          setDeactivateReasonDialog(null);
+                          setDeactivationReason("");
+                        },
+                      }
+                    );
+                  }
+                }}
+                disabled={!deactivationReason || toggleMutation.isPending}
+              >
+                {toggleMutation.isPending ? "Обработка..." : "Деактивирай"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -353,16 +564,34 @@ export default function Employees() {
             При деактивиране всички артикули ще бъдат автоматично върнати в склада.
           </p>
 
-          <div className="flex justify-end gap-2 mt-2">
-            <Button variant="secondary" onClick={() => setDeactivateTarget(null)}>
-              Отказ
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => setConfirmDeactivate(true)}
-            >
-              Върни артикулите и деактивирай
-            </Button>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Причина за деактивиране</Label>
+              <Select value={deactivationReason} onValueChange={setDeactivationReason}>
+                <SelectTrigger><SelectValue placeholder="Изберете причина" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Напуснал">🚶 Напуснал</SelectItem>
+                  <SelectItem value="Уволнен">❌ Уволнен</SelectItem>
+                  <SelectItem value="Дългосрочен отпуск">🏖️ Дългосрочен отпуск</SelectItem>
+                  <SelectItem value="Пенсиониран">👴 Пенсиониран</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => {
+                setDeactivateTarget(null);
+                setDeactivationReason("");
+              }}>
+                Отказ
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setConfirmDeactivate(true)}
+                disabled={!deactivationReason}
+              >
+                Върни артикулите и деактивирай
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -376,15 +605,17 @@ export default function Employees() {
         confirmLabel="Да, продължи"
         loading={deactivateWithReturnMutation.isPending}
         onConfirm={() => {
-          if (deactivateTarget) {
+          if (deactivateTarget && deactivationReason) {
             deactivateWithReturnMutation.mutate(
               {
                 employeeId: deactivateTarget.id,
+                reason: deactivationReason,
               },
               {
                 onSettled: () => {
                   setConfirmDeactivate(false);
                   setDeactivateTarget(null);
+                  setDeactivationReason("");
                 },
               },
             );

@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Wrench, Package, AlertTriangle, Search, ChevronLeft, ChevronRight, RotateCcw, History, Info, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Plus, Wrench, Package, AlertTriangle, Search, ChevronLeft, ChevronRight, RotateCcw, History, Info, ArrowUp, ArrowDown, ArrowUpDown, Pencil } from "lucide-react";
 import { ItemHistoryDialog } from "@/components/ItemHistoryDialog";
 import { CategoryManagerDialog } from "@/components/CategoryManagerDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -43,7 +43,9 @@ export default function Inventory() {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [writeOffReason, setWriteOffReason] = useState("");
+  const [writeOffNote, setWriteOffNote] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showWrittenOff, setShowWrittenOff] = useState(false);
   const [page, setPage] = useState(0);
 
   // Sort
@@ -67,6 +69,14 @@ export default function Inventory() {
 
   // History dialog
   const [historyItem, setHistoryItem] = useState<{ id: string; code: string } | null>(null);
+
+  // Edit item dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editItemId, setEditItemId] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editOwnership, setEditOwnership] = useState<"milkos" | "rent">("milkos");
+  const [editNotes, setEditNotes] = useState("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -226,16 +236,72 @@ export default function Inventory() {
   const writeOffMutation = useMutation({
     mutationFn: async () => {
       if (!writeOffReason) throw new Error("Моля, изберете причина за бракуване");
+      if (writeOffReason === "Друго" && !writeOffNote.trim()) {
+        throw new Error("Моля, опишете причината за бракуване");
+      }
+
+      // Get current item to archive the code
+      const { data: item, error: fetchError } = await supabase
+        .from("inventory_items")
+        .select("inventory_code")
+        .eq("id", selectedItemId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Generate archived code: originalCode_BRK_date
+      const today = format(new Date(), "dd.MM.yyyy");
+      const archivedCode = `${item.inventory_code}_BRK_${today}`;
+
+      // Format reason: if "Друго", include the note
+      const finalReason = writeOffReason === "Друго"
+        ? `Друго: ${writeOffNote.trim()}`
+        : writeOffReason;
+
+      // Update with archived code and written_off status
       const { error } = await supabase
         .from("inventory_items")
-        .update({ status: "written_off", write_off_reason: writeOffReason })
+        .update({
+          inventory_code: archivedCode,
+          status: "written_off",
+          write_off_reason: finalReason,
+          written_off_at: new Date().toISOString()
+        })
         .eq("id", selectedItemId);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Артикулът е бракуван!");
+      toast.success("Артикулът е бракуван и архивиран! Кодът е освободен за повторна употреба.");
       setWriteOffOpen(false);
       setWriteOffReason("");
+      setWriteOffNote("");
+      queryClient.invalidateQueries({ queryKey: ["inventory_items_all"] });
+      queryClient.invalidateQueries({ queryKey: ["item_history"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const editItemMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("inventory_items")
+        .update({
+          price: editPrice,
+          ownership: editOwnership,
+          notes: editNotes.trim() || null,
+        })
+        .eq("id", editItemId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Артикулът е редактиран успешно!");
+      setEditOpen(false);
+      setEditCode("");
+      setEditPrice("");
+      setEditOwnership("milkos");
+      setEditNotes("");
+      setEditItemId("");
       queryClient.invalidateQueries({ queryKey: ["inventory_items_all"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -243,9 +309,17 @@ export default function Inventory() {
 
   const PAGE_SIZE = 25;
 
-  const filteredItems = items.filter((item) =>
-    !searchQuery || item.inventory_code.toLowerCase() === searchQuery.toLowerCase().trim()
-  );
+  const filteredItems = items.filter((item) => {
+    // Filter by search query
+    const matchesSearch = !searchQuery || item.inventory_code.toLowerCase() === searchQuery.toLowerCase().trim();
+
+    // Filter by written_off status
+    // If checkbox is checked, show ONLY written_off items
+    // If checkbox is unchecked, show only NON written_off items
+    const matchesStatus = showWrittenOff ? item.status === "written_off" : item.status !== "written_off";
+
+    return matchesSearch && matchesStatus;
+  });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     if (!sortKey) return 0;
@@ -336,7 +410,7 @@ export default function Inventory() {
                 <span className="hidden sm:inline">Заприходи</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="[&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
               <DialogHeader>
                 <DialogTitle>Заприхождаване на артикул</DialogTitle>
               </DialogHeader>
@@ -354,11 +428,25 @@ export default function Inventory() {
                 </div>
                 <div className="space-y-2">
                   <Label>Инвентарен код</Label>
-                  <Input value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="напр. 001" />
+                  <Input
+                    value={newCode}
+                    onChange={(e) => setNewCode(e.target.value)}
+                    placeholder={
+                      newCategoryId && categories.length > 0
+                        ? `напр. ${categories.find((c) => c.id === newCategoryId)?.code_from || "001"}`
+                        : "напр. 001"
+                    }
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Цена (€)</Label>
-                  <Input type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} placeholder="0.00" />
+                  <Input
+                    type="number"
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Собственост</Label>
@@ -427,6 +515,15 @@ export default function Inventory() {
                   aria-label="Търсене по инвентарен код"
                 />
               </div>
+              <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showWrittenOff}
+                  onChange={(e) => { setShowWrittenOff(e.target.checked); setPage(0); }}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm">Покажи бракувани</span>
+              </label>
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -558,6 +655,21 @@ export default function Inventory() {
                         >
                           <History className="w-3.5 h-3.5" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditItemId(item.id);
+                            setEditCode(item.inventory_code);
+                            setEditPrice(String(item.price || ""));
+                            setEditOwnership(item.ownership);
+                            setEditNotes(item.notes || "");
+                            setEditOpen(true);
+                          }}
+                          title="Редакция"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
                         {(item.status === "in_stock" || item.status === "assigned") && (
                           <Button
                             variant="ghost"
@@ -620,7 +732,7 @@ export default function Inventory() {
 
       {/* Complete repair dialog */}
       <Dialog open={repairOpen} onOpenChange={setRepairOpen}>
-        <DialogContent>
+        <DialogContent className="[&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
           <DialogHeader><DialogTitle>Завършване на ремонт</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -639,24 +751,141 @@ export default function Inventory() {
       </Dialog>
 
       {/* Write-off dialog */}
-      <Dialog open={writeOffOpen} onOpenChange={(open) => { setWriteOffOpen(open); if (!open) setWriteOffReason(""); }}>
-        <DialogContent>
+      <Dialog open={writeOffOpen} onOpenChange={(open) => {
+        setWriteOffOpen(open);
+        if (!open) {
+          setWriteOffReason("");
+          setWriteOffNote("");
+        }
+      }}>
+        <DialogContent className="[&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
           <DialogHeader><DialogTitle>Бракуване на артикул</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Изберете причина за бракуване:</p>
-            <Select value={writeOffReason} onValueChange={setWriteOffReason}>
-              <SelectTrigger><SelectValue placeholder="Изберете причина" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Амортизация">Амортизация</SelectItem>
-                <SelectItem value="Кражба">Кражба</SelectItem>
-                <SelectItem value="Счупване">Счупване</SelectItem>
-                <SelectItem value="Друго">Друго</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>Причина за бракуване</Label>
+              <Select value={writeOffReason} onValueChange={setWriteOffReason}>
+                <SelectTrigger><SelectValue placeholder="Изберете причина" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Амортизация">Амортизация</SelectItem>
+                  <SelectItem value="Кражба">Кражба</SelectItem>
+                  <SelectItem value="Счупване">Счупване</SelectItem>
+                  <SelectItem value="Друго">Друго</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {writeOffReason === "Друго" && (
+              <div className="space-y-2">
+                <Label>Опишете причината</Label>
+                <Textarea
+                  value={writeOffNote}
+                  onChange={(e) => setWriteOffNote(e.target.value)}
+                  placeholder="Опишете причината за бракуване..."
+                  rows={3}
+                />
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
-              <Button variant="secondary" onClick={() => { setWriteOffOpen(false); setWriteOffReason(""); }}>Отказ</Button>
-              <Button variant="destructive" onClick={() => writeOffMutation.mutate()} disabled={!writeOffReason || writeOffMutation.isPending}>
+              <Button variant="secondary" onClick={() => {
+                setWriteOffOpen(false);
+                setWriteOffReason("");
+                setWriteOffNote("");
+              }}>
+                Отказ
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => writeOffMutation.mutate()}
+                disabled={!writeOffReason || (writeOffReason === "Друго" && !writeOffNote.trim()) || writeOffMutation.isPending}
+              >
                 {writeOffMutation.isPending ? "Обработка..." : "Бракувай"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit item dialog */}
+      <Dialog open={editOpen} onOpenChange={(open) => {
+        setEditOpen(open);
+        if (!open) {
+          setEditCode("");
+          setEditPrice("");
+          setEditOwnership("milkos");
+          setEditNotes("");
+          setEditItemId("");
+        }
+      }}>
+        <DialogContent className="[&>button:last-of-type]:hover:rotate-90 [&>button:last-of-type]:transition-transform [&>button:last-of-type]:duration-200">
+          <DialogHeader><DialogTitle>Редакция на артикул</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Инвентарен код</Label>
+              <Input
+                value={editCode}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground">Кодът не може да се променя след създаване</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Цена (€)</Label>
+              <Input
+                type="number"
+                value={editPrice}
+                onChange={(e) => setEditPrice(e.target.value)}
+                placeholder="0.00"
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Собственост</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="editOwnership"
+                    value="milkos"
+                    checked={editOwnership === "milkos"}
+                    onChange={(e) => setEditOwnership(e.target.value as "milkos" | "rent")}
+                    className="w-4 h-4"
+                  />
+                  <span>Милкос</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="editOwnership"
+                    value="rent"
+                    checked={editOwnership === "rent"}
+                    onChange={(e) => setEditOwnership(e.target.value as "milkos" | "rent")}
+                    className="w-4 h-4"
+                  />
+                  <span>Наем</span>
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Забележка</Label>
+              <Textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Допълнителна информация..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="secondary" onClick={() => {
+                setEditOpen(false);
+                setEditCode("");
+                setEditPrice("");
+                setEditOwnership("milkos");
+                setEditNotes("");
+                setEditItemId("");
+              }}>
+                Отказ
+              </Button>
+              <Button onClick={() => editItemMutation.mutate()} disabled={editItemMutation.isPending}>
+                {editItemMutation.isPending ? "Обработка..." : "Запази"}
               </Button>
             </div>
           </div>
