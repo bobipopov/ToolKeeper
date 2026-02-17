@@ -77,14 +77,15 @@ export default function Overview() {
     },
   });
 
-  // Items with many repairs (alert)
+  // Items with many repairs (alert) - exclude written-off items
   const { data: itemsWithManyRepairs = [] } = useQuery({
     queryKey: ["dashboard_items_many_repairs"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("id, inventory_code, repair_count, total_repair_cost, categories(name)")
+        .select("id, inventory_code, repair_count, total_repair_cost, categories(name), status")
         .gte("repair_count", 2)
+        .neq("status", "written_off")
         .order("repair_count", { ascending: false });
 
       if (error) throw error;
