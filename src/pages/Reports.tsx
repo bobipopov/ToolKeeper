@@ -125,6 +125,10 @@ export default function Reports() {
     return acc;
   }, {});
 
+  // Split repairs into active and written-off
+  const activeRepairs = repairReport.filter(item => item.status !== 'written_off');
+  const writtenOffRepairs = repairReport.filter(item => item.status === 'written_off');
+
   // Report 2: Items assigned to an employee
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
@@ -271,23 +275,28 @@ export default function Reports() {
     }
   });
 
-  const sortedRepairReport = [...repairReport].sort((a, b) => {
-    if (!repairSortKey) return 0;
-    const dir = repairSortDir === "asc" ? 1 : -1;
-    switch (repairSortKey) {
-      case "code": return dir * a.inventory_code.localeCompare(b.inventory_code, undefined, { numeric: true });
-      case "category": return dir * (a.categories?.name ?? "").localeCompare(b.categories?.name ?? "");
-      case "price": return dir * (Number(a.price) - Number(b.price));
-      case "repairCount": return dir * (a.repair_count - b.repair_count);
-      case "totalCost": return dir * (Number(a.total_repair_cost) - Number(b.total_repair_cost));
-      case "percent": {
-        const pctA = a.price > 0 ? (a.total_repair_cost / a.price) * 100 : 0;
-        const pctB = b.price > 0 ? (b.total_repair_cost / b.price) * 100 : 0;
-        return dir * (pctA - pctB);
+  const sortRepairData = (data: InventoryItemWithCategory[]) => {
+    return [...data].sort((a, b) => {
+      if (!repairSortKey) return 0;
+      const dir = repairSortDir === "asc" ? 1 : -1;
+      switch (repairSortKey) {
+        case "code": return dir * a.inventory_code.localeCompare(b.inventory_code, undefined, { numeric: true });
+        case "category": return dir * (a.categories?.name ?? "").localeCompare(b.categories?.name ?? "");
+        case "price": return dir * (Number(a.price) - Number(b.price));
+        case "repairCount": return dir * (a.repair_count - b.repair_count);
+        case "totalCost": return dir * (Number(a.total_repair_cost) - Number(b.total_repair_cost));
+        case "percent": {
+          const pctA = a.price > 0 ? (a.total_repair_cost / a.price) * 100 : 0;
+          const pctB = b.price > 0 ? (b.total_repair_cost / b.price) * 100 : 0;
+          return dir * (pctA - pctB);
+        }
+        default: return 0;
       }
-      default: return 0;
-    }
-  });
+    });
+  };
+
+  const sortedActiveRepairs = sortRepairData(activeRepairs);
+  const sortedWrittenOffRepairs = sortRepairData(writtenOffRepairs);
 
   const sortedRespData = (responsibilityData && allEmployees) ? allEmployees
     .map((emp) => {
@@ -336,21 +345,39 @@ export default function Reports() {
   }) : [];
 
   const exportRepairsToExcel = () => {
-    const data = sortedRepairReport.map((item) => {
-      const pct = item.price > 0 ? (item.total_repair_cost / item.price) * 100 : 0;
-      return {
-        "Код": item.inventory_code,
-        "Категория": item.categories?.name ?? "",
-        "Цена артикул (€)": Number(item.price).toFixed(2),
-        "Бр. ремонти": item.repair_count,
-        "Общо ремонт (€)": Number(item.total_repair_cost).toFixed(2),
-        "% от цена": (pct < 1 && pct > 0 ? pct.toFixed(1) : pct.toFixed(0)) + "%",
-      };
-    });
+    const formatRepairData = (items: InventoryItemWithCategory[], status: string) => {
+      return items.map((item) => {
+        const pct = item.price > 0 ? (item.total_repair_cost / item.price) * 100 : 0;
+        return {
+          "Код": item.inventory_code,
+          "Категория": item.categories?.name ?? "",
+          "Цена артикул (€)": Number(item.price).toFixed(2),
+          "Бр. ремонти": item.repair_count,
+          "Общо ремонт (€)": Number(item.total_repair_cost).toFixed(2),
+          "% от цена": (pct < 1 && pct > 0 ? pct.toFixed(1) : pct.toFixed(0)) + "%",
+          "Статус": status,
+        };
+      });
+    };
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const activeData = formatRepairData(sortedActiveRepairs, "Активен");
+    const writtenOffData = formatRepairData(sortedWrittenOffRepairs, "Бракуван");
+    const allData = [...activeData, ...writtenOffData];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ремонти");
+
+    // Sheet with all repairs
+    const wsAll = XLSX.utils.json_to_sheet(allData);
+    XLSX.utils.book_append_sheet(wb, wsAll, "Всички");
+
+    // Sheet with active repairs only
+    const wsActive = XLSX.utils.json_to_sheet(activeData);
+    XLSX.utils.book_append_sheet(wb, wsActive, "Активни");
+
+    // Sheet with written-off repairs
+    const wsWrittenOff = XLSX.utils.json_to_sheet(writtenOffData);
+    XLSX.utils.book_append_sheet(wb, wsWrittenOff, "Бракувани");
+
     XLSX.writeFile(wb, `Ремонти_${format(new Date(), "dd-MM-yyyy")}.xlsx`);
   };
 
@@ -664,85 +691,175 @@ export default function Reports() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("code")}>
-                      <span className="inline-flex items-center gap-1">Код <RepairSortIcon col="code" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("category")}>
-                      <span className="inline-flex items-center gap-1">Категория <RepairSortIcon col="category" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("price")}>
-                      <span className="inline-flex items-center gap-1">Цена артикул <RepairSortIcon col="price" /></span>
-                    </TableHead>
-                    <TableHead className="text-center cursor-pointer select-none" onClick={() => toggleRepairSort("repairCount")}>
-                      <span className="inline-flex items-center gap-1 justify-center">Бр. ремонти <RepairSortIcon col="repairCount" /></span>
-                    </TableHead>
-                    <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("totalCost")}>
-                      <span className="inline-flex items-center gap-1 justify-end">Общо ремонт <RepairSortIcon col="totalCost" /></span>
-                    </TableHead>
-                    <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("percent")}>
-                      <span className="inline-flex items-center gap-1 justify-end">% от цена <RepairSortIcon col="percent" /></span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {repairLoading && Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 6 }).map((_, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                  {sortedRepairReport.map((item) => {
-                    const pct = item.price > 0 ? (item.total_repair_cost / item.price) * 100 : 0;
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono font-medium">{item.inventory_code}</TableCell>
-                        <TableCell>{item.categories?.name}</TableCell>
-                        <TableCell>{Number(item.price).toFixed(2)} €</TableCell>
-                        <TableCell className="text-center">
-                          {repairsByItem[item.id]?.length ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help inline-flex items-center gap-1">{item.repair_count}<Info className="w-4 h-4 text-muted-foreground" /></span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <div className="space-y-1 text-xs">
-                                  {repairsByItem[item.id].map((r, i) => (
-                                    <div key={i} className="flex gap-2">
-                                      <span className="text-muted-foreground whitespace-nowrap">
-                                        {format(new Date(r.created_at), "dd.MM.yyyy")}
-                                      </span>
-                                      <span>{Number(r.cost).toFixed(2)} €</span>
-                                      {r.notes && <span className="text-muted-foreground">— {r.notes}</span>}
-                                    </div>
-                                  ))}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            item.repair_count
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{Number(item.total_repair_cost).toFixed(2)} €</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline" className={pct > 100 ? "bg-destructive/10 text-destructive border-destructive/20" : pct > 50 ? "bg-primary/10 text-primary border-primary/20" : ""}>
-                            {pct < 1 && pct > 0 ? pct.toFixed(1) : pct.toFixed(0)}%
-                          </Badge>
-                        </TableCell>
+            <CardContent>
+              <Tabs defaultValue="active" className="space-y-4">
+                <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+                  <TabsTrigger value="active">Активни ({activeRepairs.length})</TabsTrigger>
+                  <TabsTrigger value="written_off">Бракувани ({writtenOffRepairs.length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active" className="mt-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("code")}>
+                          <span className="inline-flex items-center gap-1">Код <RepairSortIcon col="code" /></span>
+                        </TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("category")}>
+                          <span className="inline-flex items-center gap-1">Категория <RepairSortIcon col="category" /></span>
+                        </TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("price")}>
+                          <span className="inline-flex items-center gap-1">Цена артикул <RepairSortIcon col="price" /></span>
+                        </TableHead>
+                        <TableHead className="text-center cursor-pointer select-none" onClick={() => toggleRepairSort("repairCount")}>
+                          <span className="inline-flex items-center gap-1 justify-center">Бр. ремонти <RepairSortIcon col="repairCount" /></span>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("totalCost")}>
+                          <span className="inline-flex items-center gap-1 justify-end">Общо ремонт <RepairSortIcon col="totalCost" /></span>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("percent")}>
+                          <span className="inline-flex items-center gap-1 justify-end">% от цена <RepairSortIcon col="percent" /></span>
+                        </TableHead>
                       </TableRow>
-                    );
-                  })}
-                  {!repairLoading && sortedRepairReport.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Няма данни за ремонти</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {repairLoading && Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                          {Array.from({ length: 6 }).map((_, j) => (
+                            <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                      {sortedActiveRepairs.map((item) => {
+                        const pct = item.price > 0 ? (item.total_repair_cost / item.price) * 100 : 0;
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-mono font-medium">{item.inventory_code}</TableCell>
+                            <TableCell>{item.categories?.name}</TableCell>
+                            <TableCell>{Number(item.price).toFixed(2)} €</TableCell>
+                            <TableCell className="text-center">
+                              {repairsByItem[item.id]?.length ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-help inline-flex items-center gap-1">{item.repair_count}<Info className="w-4 h-4 text-muted-foreground" /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs">
+                                    <div className="space-y-1 text-xs">
+                                      {repairsByItem[item.id].map((r, i) => (
+                                        <div key={i} className="flex gap-2">
+                                          <span className="text-muted-foreground whitespace-nowrap">
+                                            {format(new Date(r.created_at), "dd.MM.yyyy")}
+                                          </span>
+                                          <span>{Number(r.cost).toFixed(2)} €</span>
+                                          {r.notes && <span className="text-muted-foreground">— {r.notes}</span>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                item.repair_count
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">{Number(item.total_repair_cost).toFixed(2)} €</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant="outline" className={pct > 100 ? "bg-destructive/10 text-destructive border-destructive/20" : pct > 50 ? "bg-primary/10 text-primary border-primary/20" : ""}>
+                                {pct < 1 && pct > 0 ? pct.toFixed(1) : pct.toFixed(0)}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!repairLoading && sortedActiveRepairs.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Няма активни артикули с ремонти</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+
+                <TabsContent value="written_off" className="mt-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("code")}>
+                          <span className="inline-flex items-center gap-1">Код <RepairSortIcon col="code" /></span>
+                        </TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("category")}>
+                          <span className="inline-flex items-center gap-1">Категория <RepairSortIcon col="category" /></span>
+                        </TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleRepairSort("price")}>
+                          <span className="inline-flex items-center gap-1">Цена артикул <RepairSortIcon col="price" /></span>
+                        </TableHead>
+                        <TableHead className="text-center cursor-pointer select-none" onClick={() => toggleRepairSort("repairCount")}>
+                          <span className="inline-flex items-center gap-1 justify-center">Бр. ремонти <RepairSortIcon col="repairCount" /></span>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("totalCost")}>
+                          <span className="inline-flex items-center gap-1 justify-end">Общо ремонт <RepairSortIcon col="totalCost" /></span>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleRepairSort("percent")}>
+                          <span className="inline-flex items-center gap-1 justify-end">% от цена <RepairSortIcon col="percent" /></span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {repairLoading && Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                          {Array.from({ length: 6 }).map((_, j) => (
+                            <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                      {sortedWrittenOffRepairs.map((item) => {
+                        const pct = item.price > 0 ? (item.total_repair_cost / item.price) * 100 : 0;
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-mono font-medium">{item.inventory_code}</TableCell>
+                            <TableCell>{item.categories?.name}</TableCell>
+                            <TableCell>{Number(item.price).toFixed(2)} €</TableCell>
+                            <TableCell className="text-center">
+                              {repairsByItem[item.id]?.length ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-help inline-flex items-center gap-1">{item.repair_count}<Info className="w-4 h-4 text-muted-foreground" /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs">
+                                    <div className="space-y-1 text-xs">
+                                      {repairsByItem[item.id].map((r, i) => (
+                                        <div key={i} className="flex gap-2">
+                                          <span className="text-muted-foreground whitespace-nowrap">
+                                            {format(new Date(r.created_at), "dd.MM.yyyy")}
+                                          </span>
+                                          <span>{Number(r.cost).toFixed(2)} €</span>
+                                          {r.notes && <span className="text-muted-foreground">— {r.notes}</span>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                item.repair_count
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">{Number(item.total_repair_cost).toFixed(2)} €</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant="outline" className={pct > 100 ? "bg-destructive/10 text-destructive border-destructive/20" : pct > 50 ? "bg-primary/10 text-primary border-primary/20" : ""}>
+                                {pct < 1 && pct > 0 ? pct.toFixed(1) : pct.toFixed(0)}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!repairLoading && sortedWrittenOffRepairs.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Няма бракувани артикули с ремонти</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
