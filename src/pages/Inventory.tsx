@@ -845,7 +845,7 @@ export default function Inventory() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Цена на ремонт (€)</Label>
-              <Input type="number" value={repairCost} onChange={(e) => setRepairCost(e.target.value)} placeholder="0.00" />
+              <Input type="number" value={repairCost} onChange={(e) => setRepairCost(e.target.value)} placeholder="0.00" className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
             </div>
             <div className="space-y-2">
               <Label>Забележка за ремонта</Label>
