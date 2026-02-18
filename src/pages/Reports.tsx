@@ -775,7 +775,7 @@ export default function Reports() {
                       })}
                       {!repairLoading && sortedActiveRepairs.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Няма активни артикули с ремонти</TableCell>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Няма артикули в употреба с приключени ремонти</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
