@@ -738,7 +738,7 @@ export default function Inventory() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteItemId(item.id)}
-                          title="Изтриване (само ако няма движения)"
+                          title="Изтриване"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </Button>
