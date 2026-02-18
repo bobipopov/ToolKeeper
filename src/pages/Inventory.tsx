@@ -172,14 +172,27 @@ export default function Inventory() {
 
   const addItemMutation = useMutation({
     mutationFn: async () => {
-      if (!validateCodeInRange(newCode, newCategoryId)) {
-        const cat = categories.find((c) => c.id === newCategoryId);
-        throw new Error(`Кодът "${newCode}" не е в диапазона ${cat?.code_from}-${cat?.code_to} за категория "${cat?.name}"`);
+      let finalCode = newCode.trim();
+
+      if (newOwnership === "rent") {
+        // For rent items: validate 1-1000 and add Н prefix
+        const num = parseInt(newCode);
+        if (isNaN(num) || num < 1 || num > 1000) {
+          throw new Error("За артикули под наем кодът трябва да е число между 1 и 1000");
+        }
+        finalCode = `Н${newCode.trim()}`;
+      } else {
+        // For milkos items: validate against category range
+        if (!validateCodeInRange(newCode, newCategoryId)) {
+          const cat = categories.find((c) => c.id === newCategoryId);
+          throw new Error(`Кодът "${newCode}" не е в диапазона ${cat?.code_from}-${cat?.code_to} за категория "${cat?.name}"`);
+        }
       }
+
       const price = parseFloat(newPrice);
       if (newPrice && isNaN(price)) throw new Error("Невалидна цена");
       const { error } = await supabase.from("inventory_items").insert({
-        inventory_code: newCode.trim(),
+        inventory_code: finalCode,
         category_id: newCategoryId,
         price: price || 0,
         notes: newNotes.trim(),
@@ -466,11 +479,18 @@ export default function Inventory() {
                     value={newCode}
                     onChange={(e) => setNewCode(e.target.value)}
                     placeholder={
-                      newCategoryId && categories.length > 0
-                        ? `напр. ${categories.find((c) => c.id === newCategoryId)?.code_from || "001"}`
-                        : "напр. 001"
+                      newOwnership === "rent"
+                        ? "напр. 1 (ще стане Н1)"
+                        : newCategoryId && categories.length > 0
+                          ? `напр. ${categories.find((c) => c.id === newCategoryId)?.code_from || "001"}`
+                          : "напр. 001"
                     }
                   />
+                  {newOwnership === "rent" && (
+                    <p className="text-xs text-muted-foreground">
+                      За артикули под наем въведете число от 1 до 1000. Автоматично ще се добави префикс "Н".
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Цена (€)</Label>
