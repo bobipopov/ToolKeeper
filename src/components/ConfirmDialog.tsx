@@ -9,12 +9,13 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
+import { ReactNode } from "react";
 
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description: string;
+  description: string | ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "destructive" | "warning";
@@ -59,7 +60,7 @@ export function ConfirmDialog({
             </div>
             <div className="space-y-1">
               <AlertDialogTitle>{title}</AlertDialogTitle>
-              <AlertDialogDescription>{description}</AlertDialogDescription>
+              <AlertDialogDescription className="text-justify">{description}</AlertDialogDescription>
             </div>
           </div>
         </AlertDialogHeader>
