@@ -179,19 +179,43 @@ export default function Overview() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">В склада</span>
-                <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-mono">{statusCounts.in_stock}</Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-success/10 text-success border-success/20 font-mono cursor-pointer hover:bg-success/20 transition-colors"
+                  onClick={() => navigate('/inventory?status=in_stock')}
+                >
+                  {statusCounts.in_stock}
+                </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Отдадени</span>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-mono">{statusCounts.assigned}</Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/20 font-mono cursor-pointer hover:bg-primary/20 transition-colors"
+                  onClick={() => navigate('/inventory?status=assigned')}
+                >
+                  {statusCounts.assigned}
+                </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">В ремонт</span>
-                <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 font-mono">{statusCounts.in_repair}</Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-orange-500/10 text-orange-400 border-orange-500/20 font-mono cursor-pointer hover:bg-orange-500/20 transition-colors"
+                  onClick={() => navigate('/inventory?status=in_repair')}
+                >
+                  {statusCounts.in_repair}
+                </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Бракувани</span>
-                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-mono">{statusCounts.written_off}</Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-destructive/10 text-destructive border-destructive/20 font-mono cursor-pointer hover:bg-destructive/20 transition-colors"
+                  onClick={() => navigate('/inventory?status=written_off')}
+                >
+                  {statusCounts.written_off}
+                </Badge>
               </div>
             </div>
           </CardContent>

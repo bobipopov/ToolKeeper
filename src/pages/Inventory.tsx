@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function Inventory() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
   const isAdmin = role === "admin";
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [addOpen, setAddOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
@@ -46,7 +48,21 @@ export default function Inventory() {
   const [writeOffNote, setWriteOffNote] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showWrittenOff, setShowWrittenOff] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+
+  // Read status filter from URL params
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status) {
+      setStatusFilter(status);
+      if (status === 'written_off') {
+        setShowWrittenOff(true);
+      } else {
+        setShowWrittenOff(false);
+      }
+    }
+  }, [searchParams]);
 
   // Sort
   type SortKey = "code" | "category" | "ownership" | "price" | "repairs" | "totalRepair" | "status";
@@ -384,10 +400,15 @@ export default function Inventory() {
     // Filter by search query
     const matchesSearch = !searchQuery || item.inventory_code.toLowerCase() === searchQuery.toLowerCase().trim();
 
-    // Filter by written_off status
-    // If checkbox is checked, show ONLY written_off items
-    // If checkbox is unchecked, show only NON written_off items
-    const matchesStatus = showWrittenOff ? item.status === "written_off" : item.status !== "written_off";
+    // Filter by status
+    let matchesStatus = true;
+    if (statusFilter) {
+      // If URL param status is set, filter by that specific status
+      matchesStatus = item.status === statusFilter;
+    } else {
+      // Otherwise use the showWrittenOff checkbox logic
+      matchesStatus = showWrittenOff ? item.status === "written_off" : item.status !== "written_off";
+    }
 
     return matchesSearch && matchesStatus;
   });
