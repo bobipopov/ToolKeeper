@@ -673,7 +673,10 @@ export default function Reports() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  Ремонт цена/бр vs Цена на артикула
+                  <span>
+                    Ремонт цена/бр vs Цена на артикула
+                    <span className="block text-xs font-normal text-muted-foreground">Показва само артикули с поне 1 приключен ремонт</span>
+                  </span>
                 </CardTitle>
                 <div className="w-full flex justify-center sm:w-auto">
                   <Tooltip>
@@ -694,7 +697,7 @@ export default function Reports() {
             <CardContent>
               <Tabs defaultValue="active" className="space-y-4">
                 <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
-                  <TabsTrigger value="active">Активни ({activeRepairs.length})</TabsTrigger>
+                  <TabsTrigger value="active">В употреба ({activeRepairs.length})</TabsTrigger>
                   <TabsTrigger value="written_off">Бракувани ({writtenOffRepairs.length})</TabsTrigger>
                 </TabsList>
 
