@@ -287,7 +287,7 @@ export default function Inventory() {
       const { error } = await supabase
         .from("inventory_items")
         .update({
-          price: editPrice,
+          price: editPrice === "" ? 0 : Number(editPrice),
           ownership: editOwnership,
           notes: editNotes.trim() || null,
         })
