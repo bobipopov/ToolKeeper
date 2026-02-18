@@ -79,6 +79,7 @@ export default function Inventory() {
   const [editCode, setEditCode] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editOwnership, setEditOwnership] = useState<"milkos" | "rent">("milkos");
+  const [editOriginalOwnership, setEditOriginalOwnership] = useState<"milkos" | "rent">("milkos");
   const [editNotes, setEditNotes] = useState("");
 
   const { data: categories = [] } = useQuery({
@@ -331,13 +332,35 @@ export default function Inventory() {
 
   const editItemMutation = useMutation({
     mutationFn: async () => {
+      let newCode = editCode;
+
+      // Handle ownership change
+      if (editOriginalOwnership !== editOwnership) {
+        if (editOriginalOwnership === "milkos" && editOwnership === "rent") {
+          // Changing from Милкос to Наем - add Н prefix if not already there
+          if (!editCode.startsWith("Н")) {
+            newCode = `Н${editCode}`;
+          }
+        } else if (editOriginalOwnership === "rent" && editOwnership === "milkos") {
+          // Changing from Наем to Милкос - remove Н prefix
+          newCode = editCode.replace(/^Н/, "");
+        }
+      }
+
+      const updateData: any = {
+        price: editPrice === "" ? 0 : Number(editPrice),
+        ownership: editOwnership,
+        notes: editNotes.trim() || null,
+      };
+
+      // Update code if it changed
+      if (newCode !== editCode) {
+        updateData.inventory_code = newCode;
+      }
+
       const { error } = await supabase
         .from("inventory_items")
-        .update({
-          price: editPrice === "" ? 0 : Number(editPrice),
-          ownership: editOwnership,
-          notes: editNotes.trim() || null,
-        })
+        .update(updateData)
         .eq("id", editItemId);
       if (error) throw error;
     },
@@ -347,6 +370,7 @@ export default function Inventory() {
       setEditCode("");
       setEditPrice("");
       setEditOwnership("milkos");
+      setEditOriginalOwnership("milkos");
       setEditNotes("");
       setEditItemId("");
       queryClient.invalidateQueries({ queryKey: ["inventory_items_all"] });
@@ -717,6 +741,7 @@ export default function Inventory() {
                             setEditCode(item.inventory_code);
                             setEditPrice(String(item.price || ""));
                             setEditOwnership(item.ownership);
+                            setEditOriginalOwnership(item.ownership);
                             setEditNotes(item.notes || "");
                             setEditOpen(true);
                           }}
@@ -873,6 +898,7 @@ export default function Inventory() {
           setEditCode("");
           setEditPrice("");
           setEditOwnership("milkos");
+          setEditOriginalOwnership("milkos");
           setEditNotes("");
           setEditItemId("");
         }
