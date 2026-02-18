@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Wrench, Package, AlertTriangle, Search, ChevronLeft, ChevronRight, RotateCcw, History, Info, ArrowUp, ArrowDown, ArrowUpDown, Pencil } from "lucide-react";
+import { Plus, Wrench, Package, AlertTriangle, Search, ChevronLeft, ChevronRight, RotateCcw, History, Info, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { ItemHistoryDialog } from "@/components/ItemHistoryDialog";
 import { CategoryManagerDialog } from "@/components/CategoryManagerDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -66,6 +66,9 @@ export default function Inventory() {
 
   // Confirm send to repair
   const [repairConfirmId, setRepairConfirmId] = useState<string | null>(null);
+
+  // Confirm delete
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
 
   // History dialog
   const [historyItem, setHistoryItem] = useState<{ id: string; code: string } | null>(null);
@@ -278,6 +281,37 @@ export default function Inventory() {
       setWriteOffNote("");
       queryClient.invalidateQueries({ queryKey: ["inventory_items_all"] });
       queryClient.invalidateQueries({ queryKey: ["item_history"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      // Check if item has any movements
+      const { data: movements, error: movError } = await supabase
+        .from("movements")
+        .select("id")
+        .eq("item_id", itemId)
+        .limit(1);
+
+      if (movError) throw movError;
+
+      if (movements && movements.length > 0) {
+        throw new Error("Артикулът не може да бъде изтрит защото има история на движения (отдавания/връщания). Ако искате да го премахнете от активния инвентар, използвайте бутона за бракуване.");
+      }
+
+      // Delete the item
+      const { error } = await supabase
+        .from("inventory_items")
+        .delete()
+        .eq("id", itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Артикулът е изтрит успешно!");
+      setDeleteItemId(null);
+      queryClient.invalidateQueries({ queryKey: ["inventory_items_all"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -700,6 +734,14 @@ export default function Inventory() {
                             <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteItemId(item.id)}
+                          title="Изтриване (само ако няма движения)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
                       </div>
                     </TableCell>
                   )}
@@ -906,6 +948,22 @@ export default function Inventory() {
             sendToRepairMutation.mutate(repairConfirmId, {
               onSuccess: () => setRepairConfirmId(null),
             });
+          }
+        }}
+      />
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!deleteItemId}
+        onOpenChange={(open) => !open && setDeleteItemId(null)}
+        title="Изтриване на артикул"
+        description="Сигурни ли сте, че искате да изтриете този артикул? Артикулът може да бъде изтрит само ако няма записани движения (отдавания/връщания). Това действие е необратимо!"
+        confirmLabel="Изтрий"
+        variant="destructive"
+        loading={deleteItemMutation.isPending}
+        onConfirm={() => {
+          if (deleteItemId) {
+            deleteItemMutation.mutate(deleteItemId);
           }
         }}
       />
