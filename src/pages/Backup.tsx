@@ -742,16 +742,16 @@ export default function Backup() {
       <ConfirmDialog
         open={restoreFileConfirmOpen}
         onOpenChange={setRestoreFileConfirmOpen}
-        variant="destructive"
-        title="Restore от файл"
+        variant="warning"
+        title="Възстановяване от файл"
         description={
           <span>
-            Сигурни ли сте? Всички текущи данни (категории, служители, инвентар, движения,
-            ремонти) ще бъдат <strong>изтрити безвъзвратно</strong> и заменени с тези от{" "}
-            <strong>{selectedFile?.name}</strong>.
+            Базата ще бъде върната към съдържанието на{" "}
+            <strong>{selectedFile?.name}</strong>.{" "}
+            Текущите данни ще бъдат заменени. Продължавате ли?
           </span>
         }
-        confirmLabel="Да, изтрий и възстанови"
+        confirmLabel="Възстанови"
         loading={restoreMutation.isPending}
         onConfirm={handleRestoreFromFile}
       />
@@ -759,16 +759,20 @@ export default function Backup() {
       <ConfirmDialog
         open={!!storageRestoreTarget}
         onOpenChange={(open) => !open && setStorageRestoreTarget(null)}
-        variant="destructive"
-        title="Restore от Storage"
+        variant="warning"
+        title="Възстановяване от backup"
         description={
           <span>
-            Сигурни ли сте? Всички текущи данни ще бъдат{" "}
-            <strong>изтрити безвъзвратно</strong> и заменени с тези от{" "}
-            <strong>{storageRestoreTarget?.name}</strong>.
+            Базата ще бъде върната към състоянието от{" "}
+            <strong>
+              {storageRestoreTarget?.created_at
+                ? format(new Date(storageRestoreTarget.created_at), "dd.MM.yyyy HH:mm")
+                : storageRestoreTarget?.name}
+            </strong>.{" "}
+            Текущите данни ще бъдат заменени. Продължавате ли?
           </span>
         }
-        confirmLabel="Да, изтрий и възстанови"
+        confirmLabel="Възстанови"
         loading={restoreMutation.isPending}
         onConfirm={() => {
           if (storageRestoreTarget) handleRestoreFromStorage(storageRestoreTarget);
