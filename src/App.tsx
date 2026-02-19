@@ -13,6 +13,7 @@ import Inventory from "./pages/Inventory";
 import Employees from "./pages/Employees";
 import Users from "./pages/Users";
 import Reports from "./pages/Reports";
+import Backup from "./pages/Backup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/employees" element={<ProtectedRoute adminOnly><Employees /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute adminOnly><Reports /></ProtectedRoute>} />
+            <Route path="/backup" element={<ProtectedRoute adminOnly><Backup /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

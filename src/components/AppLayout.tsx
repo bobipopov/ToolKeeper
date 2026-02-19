@@ -11,6 +11,7 @@ import {
   Shield,
   Menu,
   History,
+  DatabaseBackup,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -25,6 +26,7 @@ const navItems = [
   { to: "/employees", label: "Служители", icon: Users, roles: ["admin"] },
   { to: "/users", label: "Потребители", icon: Shield, roles: ["admin"] },
   { to: "/reports", label: "Справки", icon: BarChart3, roles: ["admin"] },
+  { to: "/backup", label: "Backup", icon: DatabaseBackup, roles: ["admin"] },
 ];
 
 function SidebarContent({
