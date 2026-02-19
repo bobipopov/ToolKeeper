@@ -16,7 +16,6 @@ import {
   Trash2,
   RotateCcw,
   Clock,
-  Calendar,
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +29,7 @@ type BackupSchedule = {
   hour: number;
   minute: number;
   day_of_week: number | null;
+  day_of_month: number | null;
   retention_count: number;
   last_backup_at: string | null;
   updated_at: string;
@@ -41,9 +41,15 @@ type StorageFile = {
   metadata: { size: number } | null;
 };
 
+type Frequency = "daily" | "weekly" | "monthly";
+
 // ─── Constants ───────────────────────────────────────────────
-const DAY_NAMES = ["Нед", "Пон", "Вт", "Ср", "Чет", "Пет", "Съб"];
-const DAY_NAMES_FULL = ["неделя", "понеделник", "вторник", "сряда", "четвъртък", "петък", "събота"];
+const WEEK_DAYS = ["Нед", "Пон", "Вт", "Ср", "Чет", "Пет", "Съб"];
+const WEEK_DAYS_FULL = ["неделя", "понеделник", "вторник", "сряда", "четвъртък", "петък", "събота"];
+const MONTH_DAY_SUFFIXES: Record<number, string> = { 1: "-ви", 2: "-ри", 7: "-ми", 8: "-ми" };
+function ordinal(n: number) {
+  return `${n}${MONTH_DAY_SUFFIXES[n] ?? "-ти"}`;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 function formatFileSize(bytes: number): string {
@@ -52,20 +58,38 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
+function deriveFrequency(s: BackupSchedule): Frequency {
+  if (s.day_of_month !== null) return "monthly";
+  if (s.day_of_week !== null) return "weekly";
+  return "daily";
+}
+
 function calcNextBackup(schedule: BackupSchedule): Date | null {
   if (!schedule.enabled) return null;
-
   const now = new Date();
+
+  if (schedule.day_of_month !== null) {
+    // Monthly: find next occurrence of day_of_month
+    const target = schedule.day_of_month;
+    const candidate = new Date(now.getFullYear(), now.getMonth(), target, schedule.hour, schedule.minute, 0, 0);
+    if (candidate <= now) {
+      // Move to next month
+      candidate.setMonth(candidate.getMonth() + 1);
+    }
+    return candidate;
+  }
+
   const candidate = new Date(now);
   candidate.setHours(schedule.hour, schedule.minute, 0, 0);
 
   if (schedule.day_of_week === null) {
+    // Daily
     if (candidate <= now) candidate.setDate(candidate.getDate() + 1);
     return candidate;
   }
 
-  const targetDay = schedule.day_of_week;
-  let daysUntil = targetDay - candidate.getDay();
+  // Weekly
+  let daysUntil = schedule.day_of_week - candidate.getDay();
   if (daysUntil < 0) daysUntil += 7;
   if (daysUntil === 0 && candidate <= now) daysUntil = 7;
   candidate.setDate(candidate.getDate() + daysUntil);
@@ -74,18 +98,59 @@ function calcNextBackup(schedule: BackupSchedule): Date | null {
 
 function isBackupDue(schedule: BackupSchedule): boolean {
   if (!schedule.enabled) return false;
-
   const now = new Date();
   const lastBackup = schedule.last_backup_at ? new Date(schedule.last_backup_at) : null;
-
   const candidate = new Date(now);
   candidate.setHours(schedule.hour, schedule.minute, 0, 0);
 
-  if (schedule.day_of_week !== null && candidate.getDay() !== schedule.day_of_week) return false;
+  if (schedule.day_of_month !== null) {
+    if (now.getDate() !== schedule.day_of_month) return false;
+  } else if (schedule.day_of_week !== null) {
+    if (now.getDay() !== schedule.day_of_week) return false;
+  }
+
   if (candidate > now) return false;
   if (lastBackup && lastBackup >= candidate) return false;
-
   return true;
+}
+
+// ─── Day-of-month grid component ─────────────────────────────
+function DayOfMonthPicker({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (day: number) => void;
+}) {
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  // Arrange in rows of 7 (like a calendar)
+  const rows: number[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    rows.push(days.slice(i, i + 7));
+  }
+
+  return (
+    <div className="space-y-1">
+      {rows.map((row, ri) => (
+        <div key={ri} className="flex gap-1">
+          {row.map((day) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => onChange(day)}
+              className={`w-9 h-9 rounded-md text-sm font-medium border transition-colors ${
+                value === day
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              }`}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ─── Main Component ───────────────────────────────────────────
@@ -99,11 +164,13 @@ export default function Backup() {
   const [deleteTarget, setDeleteTarget] = useState<StorageFile | null>(null);
   const [autoBackupRunning, setAutoBackupRunning] = useState(false);
 
+  const [frequency, setFrequency] = useState<Frequency>("daily");
   const [scheduleForm, setScheduleForm] = useState({
     enabled: false,
     hour: 2,
     minute: 0,
-    dayOfWeek: null as number | null,
+    dayOfWeek: 1 as number,    // used when frequency === "weekly"
+    dayOfMonth: 1 as number,   // used when frequency === "monthly"
     retentionCount: 10,
   });
 
@@ -121,19 +188,18 @@ export default function Backup() {
 
   useEffect(() => {
     if (!schedule) return;
+    setFrequency(deriveFrequency(schedule));
     setScheduleForm({
       enabled: schedule.enabled,
       hour: schedule.hour,
       minute: schedule.minute,
-      dayOfWeek: schedule.day_of_week,
+      dayOfWeek: schedule.day_of_week ?? 1,
+      dayOfMonth: schedule.day_of_month ?? 1,
       retentionCount: schedule.retention_count,
     });
   }, [schedule]);
 
-  const {
-    data: storageFiles = [],
-    isLoading: storageLoading,
-  } = useQuery<StorageFile[]>({
+  const { data: storageFiles = [], isLoading: storageLoading } = useQuery<StorageFile[]>({
     queryKey: ["backup_storage_files"],
     queryFn: async () => {
       const { data, error } = await supabase.storage.from("backups").list("", {
@@ -149,10 +215,8 @@ export default function Backup() {
   useEffect(() => {
     if (!schedule || autoBackupRunning) return;
     if (!isBackupDue(schedule)) return;
-
     setAutoBackupRunning(true);
     toast.info("Автоматичен backup се изпълнява...");
-
     performStorageBackup(schedule.retention_count, true)
       .then(() => toast.success("Автоматичен backup завършен успешно"))
       .catch((err: Error) => toast.error(err.message))
@@ -167,8 +231,9 @@ export default function Backup() {
         p_enabled: scheduleForm.enabled,
         p_hour: scheduleForm.hour,
         p_minute: scheduleForm.minute,
-        p_day_of_week: scheduleForm.dayOfWeek,
+        p_day_of_week: frequency === "weekly" ? scheduleForm.dayOfWeek : null,
         p_retention_count: scheduleForm.retentionCount,
+        p_day_of_month: frequency === "monthly" ? scheduleForm.dayOfMonth : null,
       });
       if (error) throw error;
     },
@@ -194,9 +259,7 @@ export default function Backup() {
 
   const restoreMutation = useMutation({
     mutationFn: async (jsonData: unknown) => {
-      const { error } = await supabase.rpc("admin_restore_data", {
-        p_data: jsonData,
-      });
+      const { error } = await supabase.rpc("admin_restore_data", { p_data: jsonData });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -223,9 +286,9 @@ export default function Backup() {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       a.href = url;
-      a.download = `toolkeeper-backup-${timestamp}.json`;
+      a.download = `toolkeeper-backup-${ts}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -239,13 +302,12 @@ export default function Backup() {
   async function performStorageBackup(retentionCount: number, isAuto: boolean) {
     const data = await fetchBackupData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const filename = `backup-${timestamp}.json`;
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const filename = `backup-${ts}.json`;
 
     const { error: uploadError } = await supabase.storage
       .from("backups")
       .upload(filename, blob, { contentType: "application/json", upsert: false });
-
     if (uploadError) throw new Error(uploadError.message);
 
     if (isAuto) {
@@ -253,7 +315,6 @@ export default function Backup() {
       queryClient.invalidateQueries({ queryKey: ["backup_schedule"] });
     }
 
-    // Retention cleanup: list oldest first, delete if over limit
     const { data: files } = await supabase.storage.from("backups").list("", {
       limit: 200,
       sortBy: { column: "created_at", order: "asc" },
@@ -262,7 +323,6 @@ export default function Backup() {
       const toDelete = files.slice(0, files.length - retentionCount).map((f) => f.name);
       await supabase.storage.from("backups").remove(toDelete);
     }
-
     queryClient.invalidateQueries({ queryKey: ["backup_storage_files"] });
   }
 
@@ -279,8 +339,7 @@ export default function Backup() {
     try {
       const { data, error } = await supabase.storage.from("backups").download(file.name);
       if (error) throw error;
-      const json = JSON.parse(await data.text());
-      restoreMutation.mutate(json);
+      restoreMutation.mutate(JSON.parse(await data.text()));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Грешка при четене на файл");
     }
@@ -289,8 +348,7 @@ export default function Backup() {
   async function handleRestoreFromFile() {
     if (!selectedFile) return;
     try {
-      const json = JSON.parse(await selectedFile.text());
-      restoreMutation.mutate(json);
+      restoreMutation.mutate(JSON.parse(await selectedFile.text()));
     } catch {
       toast.error("Невалиден JSON файл");
     }
@@ -320,8 +378,19 @@ export default function Backup() {
     setSelectedFile(file);
   }
 
-  // ─── Computed ──────────────────────────────────────────────
-  const nextBackup = schedule ? calcNextBackup(schedule) : null;
+  // ─── Derived display values ────────────────────────────────
+  const nextBackup = schedule ? calcNextBackup({ ...schedule, day_of_week: frequency === "weekly" ? scheduleForm.dayOfWeek : null, day_of_month: frequency === "monthly" ? scheduleForm.dayOfMonth : null, enabled: scheduleForm.enabled, hour: scheduleForm.hour, minute: scheduleForm.minute }) : null;
+
+  function frequencyLabel(): string {
+    if (frequency === "daily") return "всеки ден";
+    if (frequency === "weekly") return `всяка ${WEEK_DAYS_FULL[scheduleForm.dayOfWeek]}`;
+    return `всяко ${ordinal(scheduleForm.dayOfMonth)} число на месеца`;
+  }
+
+  const numInput = "w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+  const pillBase = "px-3 py-1.5 rounded-md text-sm font-medium border transition-colors";
+  const pillActive = "bg-primary text-primary-foreground border-primary";
+  const pillInactive = "border-border text-muted-foreground hover:border-primary/50";
 
   // ─── Render ────────────────────────────────────────────────
   return (
@@ -383,90 +452,84 @@ export default function Backup() {
                 </Label>
               </div>
 
-              {/* Day of week */}
+              {/* Frequency selector */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Ден
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setScheduleForm((f) => ({ ...f, dayOfWeek: null }))}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                      scheduleForm.dayOfWeek === null
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border text-muted-foreground hover:border-primary/50"
-                    }`}
-                  >
-                    Всеки ден
-                  </button>
-                  {DAY_NAMES.map((name, idx) => (
+                <Label>Честота</Label>
+                <div className="flex gap-2">
+                  {(["daily", "weekly", "monthly"] as Frequency[]).map((f) => (
                     <button
-                      key={idx}
+                      key={f}
                       type="button"
-                      onClick={() => setScheduleForm((f) => ({ ...f, dayOfWeek: idx }))}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                        scheduleForm.dayOfWeek === idx
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50"
-                      }`}
+                      onClick={() => setFrequency(f)}
+                      className={`${pillBase} ${frequency === f ? pillActive : pillInactive}`}
                     >
-                      {name}
+                      {f === "daily" ? "Всеки ден" : f === "weekly" ? "Седмично" : "Месечно"}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Weekly: day-of-week picker */}
+              {frequency === "weekly" && (
+                <div className="space-y-2">
+                  <Label>Ден от седмицата</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEK_DAYS.map((name, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setScheduleForm((f) => ({ ...f, dayOfWeek: idx }))}
+                        className={`${pillBase} ${scheduleForm.dayOfWeek === idx ? pillActive : pillInactive}`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Monthly: day-of-month calendar grid */}
+              {frequency === "monthly" && (
+                <div className="space-y-2">
+                  <Label>Ден от месеца</Label>
+                  <DayOfMonthPicker
+                    value={scheduleForm.dayOfMonth}
+                    onChange={(day) => setScheduleForm((f) => ({ ...f, dayOfMonth: day }))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Ако месецът има по-малко дни (напр. Февруари), backup-ът ще се пропусне за него.
+                  </p>
+                </div>
+              )}
 
               {/* Time + retention */}
               <div className="flex flex-wrap items-end gap-4">
                 <div className="space-y-2">
                   <Label>Час</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    max={23}
+                    type="number" min={0} max={23}
                     value={scheduleForm.hour}
-                    onChange={(e) =>
-                      setScheduleForm((f) => ({
-                        ...f,
-                        hour: Math.min(23, Math.max(0, Number(e.target.value))),
-                      }))
-                    }
-                    className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    onChange={(e) => setScheduleForm((f) => ({ ...f, hour: Math.min(23, Math.max(0, Number(e.target.value))) }))}
+                    className={numInput}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Минута</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    max={59}
+                    type="number" min={0} max={59}
                     value={scheduleForm.minute}
-                    onChange={(e) =>
-                      setScheduleForm((f) => ({
-                        ...f,
-                        minute: Math.min(59, Math.max(0, Number(e.target.value))),
-                      }))
-                    }
-                    className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    onChange={(e) => setScheduleForm((f) => ({ ...f, minute: Math.min(59, Math.max(0, Number(e.target.value))) }))}
+                    className={numInput}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Запази последни</Label>
                   <div className="flex items-center gap-2">
                     <Input
-                      type="number"
-                      min={1}
-                      max={50}
+                      type="number" min={1} max={50}
                       value={scheduleForm.retentionCount}
-                      onChange={(e) =>
-                        setScheduleForm((f) => ({
-                          ...f,
-                          retentionCount: Math.min(50, Math.max(1, Number(e.target.value))),
-                        }))
-                      }
-                      className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      onChange={(e) => setScheduleForm((f) => ({ ...f, retentionCount: Math.min(50, Math.max(1, Number(e.target.value))) }))}
+                      className={numInput}
                     />
                     <span className="text-sm text-muted-foreground">backup-а</span>
                   </div>
@@ -475,15 +538,13 @@ export default function Backup() {
 
               {/* Status info */}
               <div className="text-sm text-muted-foreground space-y-1">
-                {nextBackup && (
+                {nextBackup && scheduleForm.enabled && (
                   <p>
                     Следващ backup:{" "}
                     <span className="font-medium text-foreground">
-                      {format(nextBackup, "dd.MM.yyyy HH:mm")}
+                      {format(nextBackup, "dd.MM.yyyy")} в {String(scheduleForm.hour).padStart(2, "0")}:{String(scheduleForm.minute).padStart(2, "0")}
                       {" — "}
-                      {scheduleForm.dayOfWeek === null
-                        ? "всеки ден"
-                        : `всяка ${DAY_NAMES_FULL[scheduleForm.dayOfWeek]}`}
+                      {frequencyLabel()}
                     </span>
                   </p>
                 )}
@@ -548,48 +609,30 @@ export default function Backup() {
                   </TableCell>
                 </TableRow>
               )}
-              {!storageLoading &&
-                storageFiles.map((file) => (
-                  <TableRow key={file.name}>
-                    <TableCell className="font-mono text-xs">{file.name}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {file.created_at
-                        ? format(new Date(file.created_at), "dd.MM.yyyy HH:mm")
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {file.metadata?.size ? formatFileSize(file.metadata.size) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Изтегли"
-                          onClick={() => handleDownloadFromStorage(file)}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Restore"
-                          onClick={() => setStorageRestoreTarget(file)}
-                        >
-                          <RotateCcw className="w-4 h-4 text-primary" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Изтрий"
-                          onClick={() => setDeleteTarget(file)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+              {!storageLoading && storageFiles.map((file) => (
+                <TableRow key={file.name}>
+                  <TableCell className="font-mono text-xs">{file.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {file.created_at ? format(new Date(file.created_at), "dd.MM.yyyy HH:mm") : "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {file.metadata?.size ? formatFileSize(file.metadata.size) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" title="Изтегли" onClick={() => handleDownloadFromStorage(file)}>
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" title="Restore" onClick={() => setStorageRestoreTarget(file)}>
+                        <RotateCcw className="w-4 h-4 text-primary" />
+                      </Button>
+                      <Button variant="ghost" size="sm" title="Изтрий" onClick={() => setDeleteTarget(file)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -632,17 +675,14 @@ export default function Backup() {
           </div>
           {selectedFile && (
             <p className="text-xs text-muted-foreground">
-              Избран файл:{" "}
-              <span className="font-medium">{selectedFile.name}</span>
-              {" · "}
-              {formatFileSize(selectedFile.size)}
+              Избран файл: <span className="font-medium">{selectedFile.name}</span>
+              {" · "}{formatFileSize(selectedFile.size)}
             </p>
           )}
         </CardContent>
       </Card>
 
       {/* ─── Confirm dialogs ──────────────────────────────────── */}
-
       <ConfirmDialog
         open={restoreFileConfirmOpen}
         onOpenChange={setRestoreFileConfirmOpen}
