@@ -9,6 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   DatabaseBackup,
   Download,
   Upload,
@@ -17,6 +24,7 @@ import {
   RotateCcw,
   Clock,
   Save,
+  TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -163,6 +171,10 @@ export default function Backup() {
   const [storageRestoreTarget, setStorageRestoreTarget] = useState<StorageFile | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StorageFile | null>(null);
   const [autoBackupRunning, setAutoBackupRunning] = useState(false);
+  const [clearStep1Open, setClearStep1Open] = useState(false);
+  const [clearStep2Open, setClearStep2Open] = useState(false);
+  const [clearPin, setClearPin] = useState("");
+  const [clearNoBackupOpen, setClearNoBackupOpen] = useState(false);
 
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [scheduleForm, setScheduleForm] = useState({
@@ -271,6 +283,20 @@ export default function Backup() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
     onError: (e: Error) => toast.error(`Грешка при restore: ${e.message}`),
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("admin_clear_data");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Базата е изчистена успешно");
+      queryClient.invalidateQueries();
+      setClearStep2Open(false);
+      setClearPin("");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // ─── Core helpers ──────────────────────────────────────────
@@ -682,6 +708,36 @@ export default function Backup() {
         </CardContent>
       </Card>
 
+      {/* ── 5. Danger zone ───────────────────────────────────── */}
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <TriangleAlert className="w-4 h-4" />
+            Зона на опасност
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Изтрива <strong>всички</strong> категории, служители, инвентар, движения и ремонти.
+            Използвай само за тестване на Restore. Действието е <strong>необратимо</strong>.
+          </p>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (storageFiles.length === 0) {
+                setClearNoBackupOpen(true);
+              } else {
+                setClearStep1Open(true);
+              }
+            }}
+            className="gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Изчисти базата
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* ─── Confirm dialogs ──────────────────────────────────── */}
       <ConfirmDialog
         open={restoreFileConfirmOpen}
@@ -731,6 +787,92 @@ export default function Backup() {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.name);
         }}
       />
+
+      {/* Step 0: no backup warning */}
+      <ConfirmDialog
+        open={clearNoBackupOpen}
+        onOpenChange={(open) => { if (!open) setClearNoBackupOpen(false); }}
+        variant="destructive"
+        title="Няма направен backup!"
+        description={
+          <span>
+            <strong>Не е намерен backup файл в Storage.</strong>
+            {" "}Препоръчваме първо да направите backup, за да можете да възстановите данните при нужда.
+            <br /><br />
+            Сигурни ли сте, че искате да продължите <strong>без backup</strong>?
+          </span>
+        }
+        confirmLabel="Продължи без backup"
+        onConfirm={() => {
+          setClearNoBackupOpen(false);
+          setClearStep1Open(true);
+        }}
+      />
+
+      {/* Step 1: first confirmation */}
+      <ConfirmDialog
+        open={clearStep1Open}
+        onOpenChange={(open) => { if (!open) setClearStep1Open(false); }}
+        variant="destructive"
+        title="Изчистване на базата"
+        description={
+          <span>
+            Сигурни ли сте? Всички категории, служители, инвентар, движения и ремонти ще бъдат{" "}
+            <strong>изтрити безвъзвратно</strong>. Тази операция е само за тестване на Restore.
+          </span>
+        }
+        confirmLabel="Да, продължи"
+        onConfirm={() => {
+          setClearStep1Open(false);
+          setClearPin("");
+          setClearStep2Open(true);
+        }}
+      />
+
+      {/* Step 2: PIN confirmation */}
+      <Dialog open={clearStep2Open} onOpenChange={(open) => { if (!open) { setClearStep2Open(false); setClearPin(""); } }}>
+        <DialogContent className="border-destructive/40 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <TriangleAlert className="w-4 h-4" />
+              Въведи PIN за потвърждение
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Въведи <strong>0000</strong>, за да потвърдиш изчистването на базата.
+            </p>
+            <Input
+              type="password"
+              placeholder="••••"
+              maxLength={4}
+              value={clearPin}
+              onChange={(e) => setClearPin(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && clearPin === "0000") clearMutation.mutate();
+              }}
+              className="text-center text-xl tracking-widest w-32 mx-auto block"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="sm:justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setClearStep2Open(false); setClearPin(""); }}
+              disabled={clearMutation.isPending}
+            >
+              Отказ
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={clearPin !== "0000" || clearMutation.isPending}
+              onClick={() => clearMutation.mutate()}
+            >
+              {clearMutation.isPending ? "Изчистване..." : "Изчисти базата"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
