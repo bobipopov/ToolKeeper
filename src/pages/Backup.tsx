@@ -175,6 +175,9 @@ export default function Backup() {
   const [clearStep2Open, setClearStep2Open] = useState(false);
   const [clearPin, setClearPin] = useState("");
   const [clearNoBackupOpen, setClearNoBackupOpen] = useState(false);
+  const [resetMovStep1Open, setResetMovStep1Open] = useState(false);
+  const [resetMovStep2Open, setResetMovStep2Open] = useState(false);
+  const [resetMovPin, setResetMovPin] = useState("");
 
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [scheduleForm, setScheduleForm] = useState({
@@ -295,6 +298,20 @@ export default function Backup() {
       queryClient.invalidateQueries();
       setClearStep2Open(false);
       setClearPin("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const resetMovementsMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("admin_reset_movements");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Движенията са нулирани. Базата е готова за продуктион.");
+      queryClient.invalidateQueries();
+      setResetMovStep2Open(false);
+      setResetMovPin("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -716,25 +733,50 @@ export default function Backup() {
             Зона на опасност
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Изтрива <strong>всички</strong> категории, служители, инвентар, движения и ремонти.
-            Използвай само за тестване на Restore. Действието е <strong>необратимо</strong>.
-          </p>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              if (storageFiles.length === 0) {
-                setClearNoBackupOpen(true);
-              } else {
-                setClearStep1Open(true);
-              }
-            }}
-            className="gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Изчисти базата
-          </Button>
+        <CardContent className="space-y-5">
+
+          {/* Нулиране за продуктион */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Нулиране за продуктион</p>
+            <p className="text-sm text-muted-foreground">
+              Изтрива всички движения и ремонти. Нулира статусите на инвентара (всичко → в склад).
+              Категории, служители и инвентарни артикули <strong>се запазват</strong>.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => setResetMovStep1Open(true)}
+              className="gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Нулиране на движенията
+            </Button>
+          </div>
+
+          <hr className="border-destructive/20" />
+
+          {/* Пълно изчистване */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Пълно изчистване</p>
+            <p className="text-sm text-muted-foreground">
+              Изтрива <strong>всички</strong> категории, служители, инвентар, движения и ремонти.
+              Използвай само за тестване на Restore. Действието е <strong>необратимо</strong>.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (storageFiles.length === 0) {
+                  setClearNoBackupOpen(true);
+                } else {
+                  setClearStep1Open(true);
+                }
+              }}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Изчисти базата
+            </Button>
+          </div>
+
         </CardContent>
       </Card>
 
@@ -873,6 +915,74 @@ export default function Backup() {
               onClick={() => clearMutation.mutate()}
             >
               {clearMutation.isPending ? "Изчистване..." : "Изчисти базата"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset movements Step 1: confirmation */}
+      <ConfirmDialog
+        open={resetMovStep1Open}
+        onOpenChange={(open) => { if (!open) setResetMovStep1Open(false); }}
+        variant="destructive"
+        title="Нулиране на движенията"
+        description={
+          <span>
+            Всички движения и ремонти ще бъдат <strong>изтрити безвъзвратно</strong>.
+            Инвентарът ще бъде нулиран — всички артикули се връщат в статус &quot;в склад&quot;,
+            ремонтите и разходите се нулират.
+            <br /><br />
+            Категории, служители и инвентарни артикули <strong>се запазват</strong>.
+          </span>
+        }
+        confirmLabel="Продължи"
+        onConfirm={() => {
+          setResetMovStep1Open(false);
+          setResetMovPin("");
+          setResetMovStep2Open(true);
+        }}
+      />
+
+      {/* Reset movements Step 2: PIN */}
+      <Dialog open={resetMovStep2Open} onOpenChange={(open) => { if (!open) { setResetMovStep2Open(false); setResetMovPin(""); } }}>
+        <DialogContent className="border-destructive/40 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <TriangleAlert className="w-4 h-4" />
+              Въведи PIN за потвърждение
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Въведи <strong>0000</strong>, за да потвърдиш нулирането на движенията.
+            </p>
+            <Input
+              type="password"
+              placeholder="••••"
+              maxLength={4}
+              value={resetMovPin}
+              onChange={(e) => setResetMovPin(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && resetMovPin === "0000") resetMovementsMutation.mutate();
+              }}
+              className="text-center text-xl tracking-widest w-32 mx-auto block"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="sm:justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setResetMovStep2Open(false); setResetMovPin(""); }}
+              disabled={resetMovementsMutation.isPending}
+            >
+              Отказ
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={resetMovPin !== "0000" || resetMovementsMutation.isPending}
+              onClick={() => resetMovementsMutation.mutate()}
+            >
+              {resetMovementsMutation.isPending ? "Нулиране..." : "Нулирай движенията"}
             </Button>
           </DialogFooter>
         </DialogContent>
