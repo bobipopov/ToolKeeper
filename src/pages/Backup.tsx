@@ -733,50 +733,50 @@ export default function Backup() {
             Зона на опасност
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
 
-          {/* Нулиране за продуктион */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Нулиране за продуктион</p>
-            <p className="text-sm text-muted-foreground">
-              Изтрива всички движения и ремонти. Нулира статусите на инвентара (всичко → в склад).
-              Категории, служители и инвентарни артикули <strong>се запазват</strong>.
-            </p>
-            <Button
-              variant="destructive"
-              onClick={() => setResetMovStep1Open(true)}
-              className="gap-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Нулиране на движенията
-            </Button>
+            {/* Нулиране за продуктион */}
+            <div className="space-y-2 rounded-md border border-destructive/20 p-4">
+              <p className="text-sm font-medium">Нулиране за продуктион</p>
+              <p className="text-sm text-muted-foreground">
+                Изтрива всички движения и ремонти. Нулира статусите на инвентара (всичко → в склад).
+                Категории, служители и инвентарни артикули <strong>се запазват</strong>.
+              </p>
+              <Button
+                variant="destructive"
+                onClick={() => setResetMovStep1Open(true)}
+                className="gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Нулиране на движенията
+              </Button>
+            </div>
+
+            {/* Пълно изчистване */}
+            <div className="space-y-2 rounded-md border border-destructive/20 p-4">
+              <p className="text-sm font-medium">Пълно изчистване</p>
+              <p className="text-sm text-muted-foreground">
+                Изтрива <strong>всички</strong> категории, служители, инвентар, движения и ремонти.
+                Използвай само за тестване на Restore. Действието е <strong>необратимо</strong>.
+              </p>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (storageFiles.length === 0) {
+                    setClearNoBackupOpen(true);
+                  } else {
+                    setClearStep1Open(true);
+                  }
+                }}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Изчисти базата
+              </Button>
+            </div>
+
           </div>
-
-          <hr className="border-destructive/20" />
-
-          {/* Пълно изчистване */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Пълно изчистване</p>
-            <p className="text-sm text-muted-foreground">
-              Изтрива <strong>всички</strong> категории, служители, инвентар, движения и ремонти.
-              Използвай само за тестване на Restore. Действието е <strong>необратимо</strong>.
-            </p>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (storageFiles.length === 0) {
-                  setClearNoBackupOpen(true);
-                } else {
-                  setClearStep1Open(true);
-                }
-              }}
-              className="gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Изчисти базата
-            </Button>
-          </div>
-
         </CardContent>
       </Card>
 
