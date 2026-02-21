@@ -740,7 +740,7 @@ export default function Backup() {
             <div className="space-y-2 rounded-md border border-destructive/20 p-4">
               <p className="text-sm font-medium">Нулиране за продуктион</p>
               <p className="text-sm text-muted-foreground">
-                Изтрива всички движения и ремонти. Нулира статусите на инвентара (всичко → в склад).
+                Изтрива всички движения и ремонти.
                 Категории, служители и инвентарни артикули <strong>се запазват</strong>.
               </p>
               <Button
