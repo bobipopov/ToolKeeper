@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Calendar, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Search, Users, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { format, startOfDay, endOfDay, parse } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -235,8 +235,17 @@ export default function Movements() {
                 placeholder="Инвентарен код..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-sm"
+                className="pl-9 pr-8 text-sm"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Изчисти търсенето"
+                >
+                  <X className="h-5 w-5" strokeWidth={2.5} />
+                </button>
+              )}
             </div>
           </div>
         </div>
