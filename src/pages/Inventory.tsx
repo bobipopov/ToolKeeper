@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Wrench, Package, AlertTriangle, Search, ChevronLeft, ChevronRight, RotateCcw, History, Info, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { Plus, Wrench, Package, AlertTriangle, Search, ChevronLeft, ChevronRight, RotateCcw, History, Info, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Trash2, X } from "lucide-react";
 import { ItemHistoryDialog } from "@/components/ItemHistoryDialog";
 import { CategoryManagerDialog } from "@/components/CategoryManagerDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -610,9 +610,18 @@ export default function Inventory() {
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
                   placeholder="Търсене по код..."
-                  className="pl-9 w-full sm:w-56"
+                  className="pl-9 pr-8 w-full sm:w-56"
                   aria-label="Търсене по инвентарен код"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(""); setPage(0); }}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Изчисти търсенето"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                 <input
