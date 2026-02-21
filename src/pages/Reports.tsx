@@ -29,7 +29,7 @@ export default function Reports() {
 
   // Sort state for stock items
   type StockSortKey = "code" | "category" | "ownership" | "price" | "notes";
-  const [stockSortKey, setStockSortKey] = useState<StockSortKey | null>(null);
+  const [stockSortKey, setStockSortKey] = useState<StockSortKey | null>("code");
   const [stockSortDir, setStockSortDir] = useState<"asc" | "desc">("asc");
 
   // Sort state for repairs

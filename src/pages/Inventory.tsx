@@ -66,7 +66,7 @@ export default function Inventory() {
 
   // Sort
   type SortKey = "code" | "category" | "ownership" | "price" | "repairs" | "totalRepair" | "status";
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey | null>("code");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Add item form
