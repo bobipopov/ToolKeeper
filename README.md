@@ -1,31 +1,39 @@
-# ToolKeeper — Склад Инструменти
 
-Система за управление на машинни инструменти — заприходяване, отдаване, ремонти и справки.
+# ToolKeeper
 
-## Технологии
+ToolKeeper е web приложение за управление на склад с инструменти.
 
-- React + TypeScript
-- Vite
-- Tailwind CSS + shadcn/ui
-- Supabase (Auth, Database, Edge Functions)
+## Features
 
-## Стартиране
+- Добавяне на инструменти
+- История на търсения
+- Управление на склад
+- Web интерфейс
 
-```sh
+## Tech Stack
+
+- Next.js
+- Supabase
+- Vercel
+
+## Demo
+
+https://tool-keeper.vercel.app
+
+## Installation
+
+git clone https://github.com/bobipopov/ToolKeeper.git
+
+cd ToolKeeper
 npm install
 npm run dev
-```
 
-Приложението стартира на `http://localhost:8080`.
+## Environment
 
-## Vercel среда
-https://tool-keeper.vercel.app/
+копирайте:
 
-## Среда
+.env.example -> .env
 
-Копирай `.env.example` в `.env` и попълни стойностите:
+## License
 
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
-```
+MIT
