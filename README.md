@@ -37,3 +37,5 @@ npm run dev
 ## License
 
 MIT
+
+<img width="1883" height="878" alt="{3E8A89A3-B23B-4DBF-AAAF-E0801D799F10}" src="https://github.com/user-attachments/assets/8a80332d-f322-4806-9d69-bd088d1c11e2" />
